@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { db, createRole, getRoleById, listProjectRoles, updateRole, type NewRole } from './db';
-import { isHiddenActor } from './hidden-actors';
+import { showInActorList } from './hidden-actors';
 import { hashPassword } from './password';
 import { daysBetween } from './schedule';
 import { transaction } from './sql';
@@ -406,7 +406,7 @@ export async function listPublicProfiles(): Promise<ActorProfileFull[]> {
     await db().prepare(`${PROFILE_SELECT} WHERE p.is_public=1 ORDER BY p.updated_at DESC`).all()
   )
     .map((row) => profileFromRow(row as Row))
-    .filter((profile) => !isHiddenActor(profile.name)); // 팀의 시험용 계정(lib/hidden-actors.ts)
+    .filter(showInActorList); // 시험용 계정·사진 없는 배우는 빼기(lib/hidden-actors.ts)
 }
 
 export async function updateProfile(
