@@ -969,6 +969,7 @@ export async function deleteAccount(userId: string) {
     await run('DELETE FROM roles WHERE owner_id=?', 1);
     await run('DELETE FROM projects WHERE owner_id=?', 1);
     await run('DELETE FROM password_resets WHERE user_id=?', 1);
+    await run('DELETE FROM guardian_consents WHERE user_id=?', 1);
     await run('DELETE FROM oauth_accounts WHERE user_id=?', 1);
     await run('DELETE FROM actor_profiles WHERE user_id=?', 1);
     await run('DELETE FROM users WHERE id=?', 1);

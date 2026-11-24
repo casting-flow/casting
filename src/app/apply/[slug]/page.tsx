@@ -1,3 +1,4 @@
+import { hasGuardianConsent } from '@/lib/guardian-consent';
 import type { Metadata } from 'next';
 import { APPLICATION_INTRO_MAX } from '@/lib/validation';
 import { notFound } from 'next/navigation';
@@ -129,6 +130,7 @@ export default async function ApplyPage({
       producer={role.ownerId ? await getProducerIntro(role.ownerId) : null}
       trust={role.ownerId ? (await getProducerBadges([role.ownerId])).get(role.ownerId) : undefined}
       proposalId={actorId && proposal && /^[\w-]{8,60}$/.test(proposal) ? proposal : ''}
+      guardianConsent={actorId ? await hasGuardianConsent(actorId) : false}
     />
   );
 }

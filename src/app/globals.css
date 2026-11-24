@@ -7829,3 +7829,40 @@ a.admin-tile:hover {
     margin-top: 0;
   }
 }
+
+/* 보호자 동의 화면(/guardian-consent)과 프로필 편집의 보호자 동의 카드 */
+.guardian-items {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--page);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.guardian-items dt {
+  font-weight: 700;
+}
+.guardian-items dd {
+  margin: 2px 0 0;
+  color: var(--muted);
+}
+.guardian-done {
+  display: grid;
+  gap: 10px;
+  line-height: 1.6;
+}
+.guardian-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--page);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.guardian-card p {
+  margin: 0;
+}

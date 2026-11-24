@@ -5,6 +5,14 @@ import { ADMIN_ACTIONS, type AdminLog } from '@/lib/admin-log';
 import { METHOD_LABEL } from '@/lib/admin-rules';
 import { formatDateTime, formatDay } from '../../format';
 import MemberActions from './member-actions';
+import type { GuardianConsentInfo } from '@/lib/guardian-consent';
+
+const GUARDIAN_STATE: Record<string, string> = {
+  pending: '동의 대기',
+  expired: '요청 만료',
+  consented: '동의 완료',
+  revoked: '동의 철회',
+};
 
 const ROLE_LABEL = { producer: '제작진', actor: '배우' } as const;
 const STAGE_LABEL: Record<string, string> = {
@@ -34,10 +42,13 @@ export default function MemberView({
   detail,
   logs,
   adminId,
+  guardianConsent,
 }: {
   detail: MemberDetail;
   logs: AdminLog[];
   adminId: string;
+  /** 만 14세 미만 보호자 동의 기록(없으면 state 'none') */
+  guardianConsent?: GuardianConsentInfo;
 }) {
   const { member, profile, projects, applications, proposals, verifications } = detail;
   return (
@@ -114,6 +125,14 @@ export default function MemberView({
                 <span key={tag}>#{tag}</span>
               ))}
             </div>
+            {guardianConsent && guardianConsent.state !== 'none' && (
+              <p className="small-note">
+                보호자 동의: <strong>{GUARDIAN_STATE[guardianConsent.state]}</strong> ·{' '}
+                {guardianConsent.guardianName} ({guardianConsent.guardianEmail})
+                {guardianConsent.consentedAt &&
+                  ` · ${formatDateTime(guardianConsent.consentedAt)} 동의`}
+              </p>
+            )}
             {profile.intro && <p className="admin-inquiry-body">{profile.intro}</p>}
             {profile.filmography.length > 0 && (
               <ul className="admin-mini-list">

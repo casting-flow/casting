@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { memberDetail, requireAdmin } from '@/lib/admin';
 import { listAdminLogs } from '@/lib/admin-log';
 import AdminShell from '../../admin-shell';
+import { getGuardianConsent } from '@/lib/guardian-consent';
 import MemberView from './member-view';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +21,12 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
   const logs = await listAdminLogs({ targetId: id, limit: 50 });
   return (
     <AdminShell current="members">
-      <MemberView detail={detail} logs={logs} adminId={admin.id} />
+      <MemberView
+        detail={detail}
+        logs={logs}
+        adminId={admin.id}
+        guardianConsent={await getGuardianConsent(id)}
+      />
     </AdminShell>
   );
 }

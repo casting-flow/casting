@@ -70,6 +70,7 @@ export default function ApplyForm({
   proposalId,
   sample = false,
   home: homeOverride,
+  guardianConsent = false,
 }: {
   role: Role;
   project: Project | null;
@@ -86,6 +87,8 @@ export default function ApplyForm({
   sample?: boolean;
   /** 돌아갈 홈 주소. 없으면 프로필이 있으면 /me, 아니면 /actor. */
   home?: string;
+  /** 로그인한 계정이 만 14세 미만 보호자 동의를 받았는지(lib/guardian-consent.ts). 받았으면 아역 지원을 연다. */
+  guardianConsent?: boolean;
 }) {
   const [step, setStep] = useState<'brief' | 'form'>('brief');
   const home = homeOverride ?? (prefill ? '/me' : '/actor');
@@ -153,12 +156,12 @@ export default function ApplyForm({
       );
       return;
     }
-    // 만 14세 미만은 보호자 동의 절차가 없어 지원서를 받지 않는다(서버도 같은 규칙으로 막는다).
+    // 만 14세 미만은 보호자 동의를 받은 계정만 지원할 수 있다(서버도 같은 규칙으로 막는다).
     if (age === null) {
       setError(AGE_REQUIRED_MESSAGE);
       return;
     }
-    if (isUnderApplyAge(age)) {
+    if (isUnderApplyAge(age) && !guardianConsent) {
       setError(CHILD_APPLY_MESSAGE);
       return;
     }
@@ -424,12 +427,13 @@ export default function ApplyForm({
                     이 공고 신고하기
                   </Link>
                 </section>
-                {isChildRole(role.ageMin, role.ageMax) ? (
+                {isChildRole(role.ageMin, role.ageMax) && !guardianConsent ? (
                   <div className="child-notice" role="note">
                     <strong>만 14세 미만 아역 배역이에요</strong>
                     <p>
-                      지금은 만 14세 미만의 지원서를 받을 수 없어요. 보호자가 제작진(
-                      {role.contactName || '공고 담당자'})에게 직접 문의해 주세요.
+                      만 14세 미만은 보호자 동의를 받은 계정으로만 지원할 수 있어요. 보호자가 가입한
+                      뒤 ‘프로필 관리’에서 아이 생년월일을 넣고 보호자 동의 메일을 받아 주세요.
+                      궁금한 점은 제작진({role.contactName || '공고 담당자'})에게 문의해 주세요.
                     </p>
                   </div>
                 ) : appliedToken ? (
@@ -538,7 +542,7 @@ export default function ApplyForm({
                 />
                 {/* 생년월일은 보내지 않고, 계산한 만 나이만 지원서에 담는다 */}
                 <input type="hidden" name="age" value={age ?? ''} />
-                {isUnderApplyAge(age) && (
+                {isUnderApplyAge(age) && !guardianConsent && (
                   <small className="form-error" role="alert">
                     {CHILD_APPLY_MESSAGE}
                   </small>

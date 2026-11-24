@@ -38,7 +38,9 @@ import {
 } from '@/lib/profile';
 import { embedUrl } from '@/lib/video';
 import { latestBirthDate, manAge } from '@/lib/age';
-import { CHILD_PROFILE_MESSAGE, isChildProfile } from '@/lib/child-policy';
+import { isChildProfile } from '@/lib/child-policy';
+import GuardianConsentCard from '@/components/guardian-consent-card';
+import type { GuardianConsentInfo } from '@/lib/guardian-consent';
 import { confirmLogout } from '@/lib/logout';
 import {
   addDates,
@@ -119,7 +121,15 @@ function ChipGroups({
   );
 }
 
-export default function ProfileEditor({ initial }: { initial: ActorProfile }) {
+export default function ProfileEditor({
+  initial,
+  guardianConsent,
+  accountEmail,
+}: {
+  initial: ActorProfile;
+  guardianConsent: GuardianConsentInfo;
+  accountEmail: string;
+}) {
   const [profile, setProfile] = useState(initial);
   const [saved, setSaved] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -734,13 +744,11 @@ export default function ProfileEditor({ initial }: { initial: ActorProfile }) {
                         }));
                       }}
                     />
-                    {isChildProfile(birthAge, profile.birthYear ?? null) && (
-                      <small className="form-error" role="alert">
-                        {CHILD_PROFILE_MESSAGE}
-                      </small>
-                    )}
                   </label>
                 </div>
+                {isChildProfile(birthAge, profile.birthYear ?? null) && (
+                  <GuardianConsentCard initial={guardianConsent} defaultEmail={accountEmail} />
+                )}
                 <div className="form-three">
                   <label>
                     키 (cm)

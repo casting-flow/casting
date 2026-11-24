@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getProfileFull } from '@/lib/accounts';
 import { getCurrentUser } from '@/lib/auth';
+import { getGuardianConsent } from '@/lib/guardian-consent';
 import ProfileEditor from './profile-editor';
 
 export const dynamic = 'force-dynamic';
@@ -11,5 +12,11 @@ export default async function ProfilePage() {
   if (user.role !== 'actor') redirect('/studio');
   const profile = await getProfileFull(user.id);
   if (!profile) redirect('/me');
-  return <ProfileEditor initial={profile} />;
+  return (
+    <ProfileEditor
+      initial={profile}
+      guardianConsent={await getGuardianConsent(user.id)}
+      accountEmail={user.email}
+    />
+  );
 }
