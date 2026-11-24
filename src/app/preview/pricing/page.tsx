@@ -2,6 +2,7 @@
 // 요금제 안내 페이지(숨김). 메뉴·사이트맵 어디에도 연결하지 않고, 주소를 아는 사람만 연다.
 // 로그인 없이 볼 수 있고, 검색엔진에는 나오지 않게 noindex를 단다.
 // 가격은 검증 중인 시험 가격이다. 결제 기능은 아직 없어서 구매 버튼은 문의 화면으로 보낸다.
+// 내용(무료 한도, 무료와 프로젝트 패스의 차이)은 2026-11-24에 확정한 요금 모델을 따른다.
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -32,12 +33,14 @@ const PLANS: Plan[] = [
     name: '무료',
     desc: '처음 배우를 모집하는 제작팀',
     price: 0,
+    sub: '작품 1개 · 배역 2개 · 팀원 2명까지',
     cta: '무료로 시작하기',
     href: '/signup/producer',
     features: [
-      { text: '배우 모집 공고 등록', on: true },
-      { text: '지원자 접수 · 기본 관리', on: true },
-      { text: '공동 평가 · 투표', on: false },
+      { text: '공고 등록·지원자 접수', on: true },
+      { text: '지원자 검토·결과 안내', on: true },
+      { text: '메시지·오디션 일정', on: true },
+      { text: '팀 공동 평가', on: false },
       { text: '후보 비교', on: false },
     ],
   },
@@ -56,9 +59,10 @@ const PLANS: Plan[] = [
     featured: true,
     features: [
       { text: '무료 플랜의 모든 기능', on: true },
-      { text: '제작진 공동 평가 · 투표', on: true },
-      { text: '후보 비교 화면', on: true },
-      { text: '팀원 공동 선발 워크플로우', on: true },
+      { text: '배역·팀원 수 제한 없음', on: true },
+      { text: '팀 공동 평가 (하트·메모)', on: true },
+      { text: '후보 비교 (이상형 월드컵)', on: true },
+      { text: '추천 전체·제안 무제한', on: true },
     ],
   },
   {
@@ -78,6 +82,7 @@ const PLANS: Plan[] = [
       { text: '6개월간 여러 작품에 사용', on: true },
       { text: '3작품 시 10,700원 절약', on: true },
       { text: '4작품 시 30,600원 절약', on: true },
+      { text: '한 제작팀 전용', on: true },
     ],
   },
   {
@@ -97,6 +102,65 @@ const PLANS: Plan[] = [
       { text: '여러 제작팀 공동 이용', on: true },
       { text: '학과 일괄 구매 · 관리', on: true },
       { text: '연간 이용 규모에 맞춘 계약', on: true },
+      { text: '팀별 계정·자료 분리', on: true },
+    ],
+  },
+];
+
+// 무료와 프로젝트 패스의 차이를 세 줄로 요약한 카드.
+const POINTS = [
+  {
+    title: '무료로 끝까지',
+    body: '공고 등록부터 지원자 검토, 오디션 일정, 결과 안내까지. 작품 하나는 무료 플랜만으로 끝까지 진행할 수 있어요.',
+  },
+  {
+    title: '팀이 함께 고를 때 유료',
+    body: '여러 제작진이 함께 평가하고 후보를 비교하는 기능, 배역·팀원 한도 확장은 프로젝트 패스에서 열려요.',
+  },
+  {
+    title: '안전 기능은 언제나 무료',
+    body: '제작진 인증 배지와 신고 기능은 요금제와 상관없이 쓸 수 있어요.',
+  },
+];
+
+/** 비교표 한 칸. true는 ✓(포함), false는 —(미포함), 글자는 한도·범위를 그대로 적는다. */
+type Cell = boolean | string;
+
+/** 아직 만들지 않은 기능 칸에 다는 딱지 */
+const SOON = '출시 예정';
+
+type DiffGroup = {
+  group: string;
+  rows: { name: string; note?: string; free: Cell; pass: Cell }[];
+};
+
+const DIFF: DiffGroup[] = [
+  {
+    group: '한도',
+    rows: [
+      { name: '동시에 진행하는 작품', free: '1개', pass: '패스를 산 작품마다' },
+      { name: '작품당 배역', free: '2개', pass: '제한 없음' },
+      { name: '팀원', note: '본인 포함', free: '2명', pass: '제한 없음' },
+    ],
+  },
+  {
+    group: '모든 요금제 공통',
+    rows: [
+      { name: '공고 등록·지원 링크·지원자 접수', free: true, pass: true },
+      { name: '지원자 검토·필터·메모·결과 안내', free: true, pass: true },
+      { name: '메시지·오디션 일정·캘린더', free: true, pass: true },
+      { name: '배우 찾기·제작진 인증 배지·신고', free: true, pass: true },
+    ],
+  },
+  {
+    group: '프로젝트 패스에서 열리는 기능',
+    rows: [
+      { name: '팀 공동 평가', note: '하트·메모·의견 차이', free: '보기만', pass: true },
+      { name: '후보 비교', note: '이상형 월드컵', free: false, pass: true },
+      { name: '조건 기반 추천', free: '상위 3명', pass: '전체' },
+      { name: '캐스팅 제안 보내기', free: '월 5건', pass: '무제한' },
+      { name: '관심 배우 저장', free: '20명', pass: '무제한' },
+      { name: '지원자 목록 PDF·엑셀 내보내기', free: false, pass: SOON },
     ],
   },
 ];
@@ -134,18 +198,42 @@ const LICENSE_ROWS = [10, 20, 30, 40, 50].map((works) => {
 
 const FAQ = [
   {
-    q: '학기 패스와 단체구매는 뭐가 다른가요?',
-    a: '학기 패스는 한 제작팀이 여러 작품을 만드는 경우, 단체구매는 서로 다른 제작팀이 비용을 함께 부담하는 경우예요.',
+    q: '무료 플랜과 유료의 차이는?',
+    a: '무료로도 공고 등록부터 지원자 검토, 오디션 일정, 결과 안내까지 작품 하나를 끝까지 진행할 수 있어요. 여러 제작진이 함께 평가하고 후보를 비교하는 기능, 배역·팀원 한도 확장은 프로젝트 패스에서 열려요.',
   },
   {
-    q: '무료 플랜과 유료의 차이는?',
-    a: '무료 플랜은 지원자 접수와 기본 관리까지. 여러 제작진이 함께 평가·투표하고 후보를 비교하는 기능은 유료 패스에서 열려요.',
+    q: '팀원은 몇 명까지 초대할 수 있나요?',
+    a: '프로젝트 패스는 팀원 수에 제한이 없어요. 패스는 작품마다 적용되기 때문에 다른 작품을 진행하려면 그 작품의 패스가 따로 필요해요. 여러 제작팀이 함께 이용한다면 단체구매가 더 저렴해요.',
+  },
+  {
+    q: '학기 패스와 단체구매는 뭐가 다른가요?',
+    a: '학기 패스는 한 제작팀이 여러 작품을 만드는 경우, 단체구매는 서로 다른 제작팀이 비용을 함께 부담하는 경우예요.',
   },
   {
     q: '이용권은 언제부터 기간이 시작되나요?',
     a: '작품 이용권은 활성화한 날부터 90일간 사용할 수 있어요. 미사용 이용권의 활성화 기한과 환불·양도 조건은 별도 안내돼요.',
   },
 ];
+
+/** 비교표의 값 칸. 기호만 있는 칸은 화면 낭독기가 뜻을 읽을 수 있게 이름을 붙인다. */
+function DiffCell({ value }: { value: Cell }) {
+  if (value === true) {
+    return (
+      <span className={styles.yes} role="img" aria-label="포함">
+        ✓
+      </span>
+    );
+  }
+  if (value === false) {
+    return (
+      <span className={styles.no} role="img" aria-label="미포함">
+        —
+      </span>
+    );
+  }
+  if (value === SOON) return <span className={`${styles.chip} ${styles.muted}`}>{value}</span>;
+  return <>{value}</>;
+}
 
 export default function PricingPage() {
   return (
@@ -158,10 +246,10 @@ export default function PricingPage() {
             <span>CastingFlow</span>
           </Link>
           <nav className={styles.nav}>
-            <Link href="/">기능</Link>
             <a href="#plans" className={styles.navOn}>
               요금제
             </a>
+            <a href="#diff">무료와 차이</a>
             <a href="#group">단체구매</a>
             <a href="#faq">자주 묻는 질문</a>
           </nav>
@@ -212,6 +300,62 @@ export default function PricingPage() {
               </ul>
             </article>
           ))}
+        </section>
+
+        <section id="diff" className={styles.section}>
+          <div className={styles.head}>
+            <div>
+              <span className={styles.eyebrow}>FREE VS PASS</span>
+              <h2>무료와 프로젝트 패스, 무엇이 다른가요?</h2>
+            </div>
+          </div>
+          <div className={styles.points}>
+            {POINTS.map((point) => (
+              <div key={point.title}>
+                <h3>{point.title}</h3>
+                <p>{point.body}</p>
+              </div>
+            ))}
+          </div>
+          <div className={styles.panel}>
+            <table
+              className={`${styles.table} ${styles.diff}`}
+              aria-label="무료와 프로젝트 패스 비교"
+            >
+              <thead>
+                <tr>
+                  <th scope="col">기능</th>
+                  <th scope="col">무료</th>
+                  <th scope="col">
+                    프로젝트 패스 <span className={styles.lime}>{won(PASS)}원</span>
+                  </th>
+                </tr>
+              </thead>
+              {DIFF.map((section) => (
+                <tbody key={section.group}>
+                  <tr className={styles.diffGroup}>
+                    <th colSpan={3} scope="rowgroup">
+                      {section.group}
+                    </th>
+                  </tr>
+                  {section.rows.map((row) => (
+                    <tr key={row.name}>
+                      <td>
+                        {row.name}
+                        {row.note && <span className={styles.diffNote}> {row.note}</span>}
+                      </td>
+                      <td>
+                        <DiffCell value={row.free} />
+                      </td>
+                      <td>
+                        <DiffCell value={row.pass} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              ))}
+            </table>
+          </div>
         </section>
 
         <section id="group" className={styles.section}>
@@ -364,7 +508,13 @@ export default function PricingPage() {
                   ))}
                 </tbody>
               </table>
-              <p className={styles.panelFoot}>연 30편 미만이라면 단체구매 패키지가 더 유리해요.</p>
+              {/* 단체 이용권 값은 위 GROUP 가격으로 계산한 것이다: 30편 = 10개 묶음 3번(477,000원),
+                  36편 = 거기에 5개 묶음 1번과 낱개 1개(586,400원). 37편은 606,300원으로 라이선스(600,000원)를 넘는다.
+                  묶음·라이선스 가격을 바꾸면 이 문장도 함께 고친다. */}
+              <p className={styles.panelFoot}>
+                연 36편까지는 단체 이용권이 더 저렴해요 (30편 477,000원 · 36편 586,400원). 학과
+                라이선스는 연 37편부터 유리해요.
+              </p>
             </div>
           </div>
         </section>

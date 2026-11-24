@@ -237,7 +237,8 @@
   align-items: center;
   gap: 8px;
 }
-.features i {
+.features i,
+.yes {
   display: inline-grid;
   place-items: center;
   width: 15px;
@@ -557,10 +558,72 @@
   color: var(--lime-ink);
 }
 
+/* 무료와 프로젝트 패스 비교. 화면에서는 요금제 카드 바로 아래지만, 표가 위 .table을 바탕으로 쓰므로 그 뒤에 둔다. */
+.points {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (max-width: 760px) {
+  .points {
+    grid-template-columns: 1fr;
+  }
+}
+.points > div {
+  padding: 18px 20px 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.points h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.points p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.diff {
+  table-layout: fixed;
+}
+.diff th:nth-child(2),
+.diff td:nth-child(2) {
+  width: 20%;
+  text-align: center;
+}
+.diff th:nth-child(3),
+.diff td:nth-child(3) {
+  width: 28%;
+  text-align: center;
+}
+.diff td {
+  padding: 12px 0;
+}
+.diffGroup th {
+  padding: 20px 0 8px;
+  color: var(--lime);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.diffNote {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.yes {
+  vertical-align: middle;
+}
+.no {
+  color: var(--faint);
+}
+
 /* 자주 묻는 질문 */
 .faq {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 24px;
 }
 @media (max-width: 760px) {
