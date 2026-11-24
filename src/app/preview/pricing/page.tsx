@@ -6,6 +6,7 @@
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Fragment } from 'react';
 import styles from './pricing.module.css';
 
 export const metadata: Metadata = {
@@ -16,6 +17,15 @@ export const metadata: Metadata = {
 
 const won = (value: number) => value.toLocaleString('ko-KR');
 
+/**
+ * 화면에 적는 이름. 배열이면 가운뎃점으로 잇는 항목들이다. '공고 등록·지원 링크·지원자 접수'처럼
+ * 항목 안에 띄어쓰기가 있을 때 쓴다. '배역·팀원 수'처럼 한 덩어리로 붙여 읽는 말은 그냥 글자로 둔다.
+ */
+type Label = string | string[];
+
+/** 이름을 글자 하나로 이은 값(키로 쓴다). 화면에 찍히는 글자와 같다. */
+const plain = (label: Label) => (typeof label === 'string' ? label : label.join('·'));
+
 type Plan = {
   name: string;
   desc: string;
@@ -25,7 +35,7 @@ type Plan = {
   cta: string;
   href: string;
   featured?: boolean;
-  features: { text: string; on: boolean }[];
+  features: { text: Label; on: boolean }[];
 };
 
 const PLANS: Plan[] = [
@@ -37,9 +47,9 @@ const PLANS: Plan[] = [
     cta: '무료로 시작하기',
     href: '/signup/producer',
     features: [
-      { text: '공고 등록·지원자 접수', on: true },
-      { text: '지원자 검토·결과 안내', on: true },
-      { text: '메시지·오디션 일정', on: true },
+      { text: ['공고 등록', '지원자 접수'], on: true },
+      { text: ['지원자 검토', '결과 안내'], on: true },
+      { text: ['메시지', '오디션 일정'], on: true },
       { text: '팀 공동 평가', on: false },
       { text: '후보 비교', on: false },
     ],
@@ -62,7 +72,7 @@ const PLANS: Plan[] = [
       { text: '배역·팀원 수 제한 없음', on: true },
       { text: '팀 공동 평가 (하트·메모)', on: true },
       { text: '후보 비교 (이상형 월드컵)', on: true },
-      { text: '추천 전체·제안 무제한', on: true },
+      { text: ['추천 전체', '제안 무제한'], on: true },
     ],
   },
   {
@@ -131,7 +141,7 @@ const SOON = '출시 예정';
 
 type DiffGroup = {
   group: string;
-  rows: { name: string; note?: string; free: Cell; pass: Cell }[];
+  rows: { name: Label; note?: Label; free: Cell; pass: Cell }[];
 };
 
 const DIFF: DiffGroup[] = [
@@ -146,16 +156,16 @@ const DIFF: DiffGroup[] = [
   {
     group: '모든 요금제 공통',
     rows: [
-      { name: '공고 등록·지원 링크·지원자 접수', free: true, pass: true },
-      { name: '지원자 검토·필터·메모·결과 안내', free: true, pass: true },
-      { name: '메시지·오디션 일정·캘린더', free: true, pass: true },
-      { name: '배우 찾기·제작진 인증 배지·신고', free: true, pass: true },
+      { name: ['공고 등록', '지원 링크', '지원자 접수'], free: true, pass: true },
+      { name: ['지원자 검토', '필터', '메모', '결과 안내'], free: true, pass: true },
+      { name: ['메시지', '오디션 일정', '캘린더'], free: true, pass: true },
+      { name: ['배우 찾기', '제작진 인증 배지', '신고'], free: true, pass: true },
     ],
   },
   {
     group: '프로젝트 패스에서 열리는 기능',
     rows: [
-      { name: '팀 공동 평가', note: '하트·메모·의견 차이', free: '보기만', pass: true },
+      { name: '팀 공동 평가', note: ['하트', '메모', '의견 차이'], free: '보기만', pass: true },
       { name: '후보 비교', note: '이상형 월드컵', free: false, pass: true },
       { name: '조건 기반 추천', free: '상위 3명', pass: '전체' },
       { name: '캐스팅 제안 보내기', free: '월 5건', pass: '무제한' },
@@ -214,6 +224,23 @@ const FAQ = [
     a: '작품 이용권은 활성화한 날부터 90일간 사용할 수 있어요. 미사용 이용권의 활성화 기한과 환불·양도 조건은 별도 안내돼요.',
   },
 ];
+
+/**
+ * 가운뎃점으로 이은 이름. 항목 안에 띄어쓰기가 있으면 붙여 쓴 점이 묻혀서 어디서 끊어 읽을지 헷갈린다.
+ * 그래서 점 양옆을 벌려 보이게 하고, 줄은 항목 사이에서만 바뀌게 한다. 찍히는 글자는 붙여 쓴 그대로다(벌림은 CSS).
+ */
+function Dotted({ label }: { label: Label }) {
+  if (typeof label === 'string') return <>{label}</>;
+  return label.map((item, index) => (
+    <Fragment key={item}>
+      {index > 0 && <wbr />}
+      <span className={styles.item}>
+        {item}
+        {index < label.length - 1 && <span className={styles.dot}>·</span>}
+      </span>
+    </Fragment>
+  ));
+}
 
 /** 비교표의 값 칸. 기호만 있는 칸은 화면 낭독기가 뜻을 읽을 수 있게 이름을 붙인다. */
 function DiffCell({ value }: { value: Cell }) {
@@ -292,9 +319,11 @@ export default function PricingPage() {
               </Link>
               <ul className={styles.features}>
                 {plan.features.map((feature) => (
-                  <li key={feature.text} className={feature.on ? '' : styles.off}>
+                  <li key={plain(feature.text)} className={feature.on ? '' : styles.off}>
                     <i aria-hidden>{feature.on ? '✓' : '−'}</i>
-                    {feature.text}
+                    <span>
+                      <Dotted label={feature.text} />
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -317,44 +346,51 @@ export default function PricingPage() {
               </div>
             ))}
           </div>
-          <div className={styles.panel}>
-            <table
-              className={`${styles.table} ${styles.diff}`}
-              aria-label="무료와 프로젝트 패스 비교"
-            >
-              <thead>
-                <tr>
-                  <th scope="col">기능</th>
-                  <th scope="col">무료</th>
-                  <th scope="col">
-                    프로젝트 패스 <span className={styles.lime}>{won(PASS)}원</span>
-                  </th>
-                </tr>
-              </thead>
-              {DIFF.map((section) => (
-                <tbody key={section.group}>
-                  <tr className={styles.diffGroup}>
-                    <th colSpan={3} scope="rowgroup">
-                      {section.group}
+          <div className={`${styles.panel} ${styles.diffPanel}`}>
+            <div className={styles.diffLane}>
+              <table
+                className={`${styles.table} ${styles.diff}`}
+                aria-label="무료와 프로젝트 패스 비교"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">기능</th>
+                    <th scope="col">무료</th>
+                    <th scope="col">
+                      프로젝트 패스 <span className={styles.lime}>{won(PASS)}원</span>
                     </th>
                   </tr>
-                  {section.rows.map((row) => (
-                    <tr key={row.name}>
-                      <td>
-                        {row.name}
-                        {row.note && <span className={styles.diffNote}> {row.note}</span>}
-                      </td>
-                      <td>
-                        <DiffCell value={row.free} />
-                      </td>
-                      <td>
-                        <DiffCell value={row.pass} />
-                      </td>
+                </thead>
+                {DIFF.map((section) => (
+                  <tbody key={section.group}>
+                    <tr className={styles.diffGroup}>
+                      <th colSpan={3} scope="rowgroup">
+                        {section.group}
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              ))}
-            </table>
+                    {section.rows.map((row) => (
+                      <tr key={plain(row.name)}>
+                        <td>
+                          <Dotted label={row.name} />
+                          {row.note && (
+                            <span className={styles.diffNote}>
+                              {' '}
+                              <Dotted label={row.note} />
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <DiffCell value={row.free} />
+                        </td>
+                        <td>
+                          <DiffCell value={row.pass} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                ))}
+              </table>
+            </div>
           </div>
         </section>
 
