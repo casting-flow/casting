@@ -436,6 +436,19 @@ async function moveSoloPrivateChats(connection: Conn) {
  */
 async function createUploadOwners(connection: Conn) {
   if (await connection.prepare(`SELECT 1 FROM app_meta WHERE key='uploads_v1'`).get()) return;
+  // 지우거나 바꾸는 것은 없고 더하기만 한다. 다시 돌아도 안전하다(없을 때만 만들기, 이미 있는 주인은 그대로).
+  // 실패해도 사이트 시작은 막지 않는다. 표시(uploads_v1)를 남기지 않으니 다음 시작에 다시 시도한다.
+  await connection.exec('SAVEPOINT upload_owners');
+  try {
+    await fillUploadOwners(connection);
+    await connection.exec('RELEASE SAVEPOINT upload_owners');
+  } catch (error) {
+    await connection.exec('ROLLBACK TO SAVEPOINT upload_owners');
+    console.warn('업로드 주인 기록(uploads)을 만들지 못했습니다', error);
+  }
+}
+
+async function fillUploadOwners(connection: Conn) {
   await connection.exec(`
     CREATE TABLE IF NOT EXISTS uploads (
       name TEXT PRIMARY KEY, owner_id TEXT NOT NULL, created_at TEXT NOT NULL
