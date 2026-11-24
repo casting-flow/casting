@@ -395,6 +395,7 @@ async function initialize(database: Conn) {
   }
   await moveOldPrivateChats(database);
   await moveSoloPrivateChats(database);
+  await createUploadOwners(database);
   // 목록을 고쳤을 때 다음 시작에 반영된다. 한 번에 넣고, 이미 있는 도메인은 이름·줄임말만 갱신한다.
   const quote = (text: string) => `'${text.replace(/'/g, "''")}'`;
   await database.exec(
@@ -436,6 +437,61 @@ async function moveSoloPrivateChats(connection: Conn) {
     WHERE m.application_id=a.id AND m.room='' AND p.chat_mode='private';
     INSERT INTO app_meta (key, value) VALUES ('chat_rooms_v3', 'done') ON CONFLICT (key) DO NOTHING;
   `);
+}
+
+/**
+ * 한 번만: 올린 파일의 주인 기록(uploads)을 만든다. PDF를 누가 열 수 있는지 정할 때 쓴다(lib/upload-access.ts).
+ * 이미 자료실에 있는 PDF는 그 배우를 주인으로 채운다. 대화 첨부 파일 이름 찾기용 색인도 함께 만든다.
+ * 주인 칸에 외래 키를 걸지 않는다(탈퇴할 때 deleteAccount가 직접 지운다).
+ */
+async function createUploadOwners(connection: Conn) {
+  if (await connection.prepare(`SELECT 1 FROM app_meta WHERE key='uploads_v1'`).get()) return;
+  // 지우거나 바꾸는 것은 없고 더하기만 한다. 다시 돌아도 안전하다(없을 때만 만들기, 이미 있는 주인은 그대로).
+  // 실패해도 사이트 시작은 막지 않는다. 표시(uploads_v1)를 남기지 않으니 다음 시작에 다시 시도한다.
+  await connection.exec('SAVEPOINT upload_owners');
+  try {
+    await fillUploadOwners(connection);
+    await connection.exec('RELEASE SAVEPOINT upload_owners');
+  } catch (error) {
+    await connection.exec('ROLLBACK TO SAVEPOINT upload_owners');
+    console.warn('업로드 주인 기록(uploads)을 만들지 못했습니다', error);
+  }
+}
+
+async function fillUploadOwners(connection: Conn) {
+  await connection.exec(`
+    CREATE TABLE IF NOT EXISTS uploads (
+      name TEXT PRIMARY KEY, owner_id TEXT NOT NULL, created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS uploads_owner ON uploads(owner_id);
+    CREATE INDEX IF NOT EXISTS chat_messages_file_key ON chat_messages(file_key) WHERE file_key <> '';
+    ALTER TABLE uploads ENABLE ROW LEVEL SECURITY;
+  `);
+  // 자료실 JSON은 글자 칸이라 깨진 줄이 있을 수 있다. SQL로 바꾸지 않고 여기서 읽어 깨진 줄은 건너뛴다.
+  const profiles = (await connection
+    .prepare(
+      `SELECT user_id, documents, updated_at FROM actor_profiles WHERE documents LIKE '%.pdf%'`,
+    )
+    .all()) as { user_id: string; documents: string; updated_at: string }[];
+  for (const profile of profiles) {
+    let documents: { url?: unknown }[] = [];
+    try {
+      documents = JSON.parse(profile.documents);
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(documents)) continue;
+    for (const doc of documents) {
+      const name = /^\/api\/uploads\/([a-f0-9-]{36}\.pdf)$/.exec(String(doc?.url ?? ''))?.[1];
+      if (name)
+        await connection
+          .prepare('INSERT OR IGNORE INTO uploads (name, owner_id, created_at) VALUES (?,?,?)')
+          .run(name, profile.user_id, profile.updated_at);
+    }
+  }
+  await connection.exec(
+    `INSERT INTO app_meta (key, value) VALUES ('uploads_v1', 'done') ON CONFLICT (key) DO NOTHING`,
+  );
 }
 
 /**

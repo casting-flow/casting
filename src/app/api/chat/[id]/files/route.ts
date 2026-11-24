@@ -9,6 +9,7 @@ import {
 } from '@/lib/chat-files';
 import { sendChatMessage } from '@/lib/db';
 import { saveUpload } from '@/lib/storage';
+import { chatStoragePath } from '@/lib/upload-access-rules';
 import { requiredText } from '@/lib/validation';
 
 /** 파일 한 개를 (글과 함께) 대화에 보낸다. 본문은 multipart: file, body, receipt */
@@ -32,7 +33,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       { status: 415 },
     );
   const key = `${randomUUID()}.${ext}`;
-  await saveUpload(key, bytes, chatFileContentType(ext));
+  // 일반 업로드와 다른 chat/ 폴더에 둔다. /api/uploads/로는 열리지 않고 대화방 확인을 거쳐야 열린다.
+  await saveUpload(chatStoragePath(key), bytes, chatFileContentType(ext));
   const message = await sendChatMessage(id, {
     sender: participant.kind,
     senderId: participant.kind === 'producer' ? participant.userId : '',

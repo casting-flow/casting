@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { deleteStoredPaths, readStoredHead, storedFileInfo } from '@/lib/storage';
+import { uploadOwner } from '@/lib/upload-access';
 import { isStoredPdfName, PROFILE_PDF_MAX_BYTES, profilePdfTooLarge } from '@/lib/upload-limits';
 
 /**
@@ -8,11 +9,14 @@ import { isStoredPdfName, PROFILE_PDF_MAX_BYTES, profilePdfTooLarge } from '@/li
  * 맞지 않으면 올라간 파일을 지운다.
  */
 export async function POST(request: NextRequest) {
-  if (!(await getSession()))
-    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
   const body = await request.json().catch(() => ({}));
   const name = String(body.name || '');
   if (!isStoredPdfName(name))
+    return NextResponse.json({ error: '파일 이름이 맞지 않아요.' }, { status: 400 });
+  // 올리기 주소를 받은 본인만 확인할 수 있다. 남의 파일을 지우거나 주소를 얻지 못하게 한다.
+  if ((await uploadOwner(name)) !== session.userId)
     return NextResponse.json({ error: '파일 이름이 맞지 않아요.' }, { status: 400 });
   const info = await storedFileInfo(name);
   if (!info)

@@ -4,7 +4,7 @@ import { showInActorList } from './hidden-actors';
 import { hashPassword } from './password';
 import { daysBetween } from './schedule';
 import { transaction } from './sql';
-import { deleteUploads } from './storage';
+import { deleteChatFiles, deleteUploads } from './storage';
 import type { ActorProfile, Filmography, Gender } from './profile';
 import type { UserRole } from './session-token';
 
@@ -902,6 +902,7 @@ export async function setProposalStatus(
  */
 export async function deleteAccount(userId: string) {
   const files: string[] = [];
+  const chatKeys: string[] = [];
   await transaction(async () => {
     const run = (sql: string, count: number) =>
       db()
@@ -931,13 +932,13 @@ export async function deleteAccount(userId: string) {
       .all(userId, userId)) as { photo_url: string; photo_urls: string }[];
     for (const app of apps)
       files.push(app.photo_url, ...(JSON.parse(app.photo_urls || '[]') as string[]));
-    // 대화에 주고받은 첨부 파일도 같은 저장소(uploads/)에 있다.
+    // 대화에 주고받은 첨부 파일(저장소 chat/ 폴더, 예전 것은 맨 위)
     const chatFiles = (await db()
       .prepare(
         `SELECT file_key FROM chat_messages WHERE application_id IN (${appIds}) AND file_key<>''`,
       )
       .all(userId, userId)) as { file_key: string }[];
-    files.push(...chatFiles.map((row) => `/api/uploads/${row.file_key}`));
+    chatKeys.push(...chatFiles.map((row) => row.file_key));
 
     await run(`DELETE FROM candidate_votes WHERE user_id=? OR candidate_id IN (${candIds})`, 4);
     await run(`DELETE FROM candidate_notes WHERE user_id=? OR candidate_id IN (${candIds})`, 4);
@@ -972,7 +973,9 @@ export async function deleteAccount(userId: string) {
     await run('DELETE FROM guardian_consents WHERE user_id=?', 1);
     await run('DELETE FROM oauth_accounts WHERE user_id=?', 1);
     await run('DELETE FROM actor_profiles WHERE user_id=?', 1);
+    await run('DELETE FROM uploads WHERE owner_id=?', 1);
     await run('DELETE FROM users WHERE id=?', 1);
   });
   await deleteUploads(files.filter(Boolean));
+  await deleteChatFiles(chatKeys);
 }

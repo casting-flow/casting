@@ -22,6 +22,8 @@ import {
 } from '@/lib/profile';
 import { PROFILE_INTRO_MAX, requiredText, safeImageRef, safeUrl } from '@/lib/validation';
 import { manAge } from '@/lib/age';
+import { ownedUploadNames } from '@/lib/upload-access';
+import { keepOwnedDocuments } from '@/lib/upload-access-rules';
 import { MAX_UNAVAILABLE_DAYS } from '@/lib/date-ranges';
 
 function intIn(value: unknown, min: number, max: number) {
@@ -57,13 +59,21 @@ export async function PUT(request: NextRequest) {
     .map((item: unknown) => safeImageRef(item))
     .filter(Boolean)
     .slice(0, 8);
-  const documents: ProfileDocument[] = (Array.isArray(body.documents) ? body.documents : [])
+  const pickedDocuments: ProfileDocument[] = (Array.isArray(body.documents) ? body.documents : [])
     .map((item: Record<string, unknown>) => ({
       name: requiredText(item?.name, 120) || '첨부 자료',
       url: safeDocumentRef(item?.url),
     }))
     .filter((doc: ProfileDocument) => doc.url)
     .slice(0, MAX_DOCUMENTS);
+  // 올린 PDF는 내가 올린 것만 남긴다(남의 PDF 주소를 내 자료실에 넣어 열어 보는 일을 막는다).
+  const documents = keepOwnedDocuments(
+    pickedDocuments,
+    await ownedUploadNames(
+      actorId,
+      pickedDocuments.map((doc) => doc.url.replace('/api/uploads/', '')),
+    ),
+  );
   // 생년월일이 맞게 들어오면 출생연도도 그 연도로 맞춘다. 없으면 예전처럼 출생연도만 저장한다.
   const birthDate =
     typeof body.birthDate === 'string' &&
