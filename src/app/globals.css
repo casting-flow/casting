@@ -3711,6 +3711,53 @@ body:has(.save-bar) .toast {
   font-weight: 600;
   overflow-wrap: anywhere;
 }
+.draft-photos {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.draft-photos > .muted {
+  margin: 6px 0 0;
+}
+.draft-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+.draft-photo {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  background: #fff;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.draft-photo.on {
+  border-color: var(--ink);
+  opacity: 1;
+}
+.draft-photo.off {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+.draft-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.draft-photo input {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--ink);
+}
 .draft-hint,
 .draft-source {
   color: var(--faint, #9ea5b2);
