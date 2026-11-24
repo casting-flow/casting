@@ -7866,3 +7866,24 @@ a.admin-tile:hover {
 .guardian-card p {
   margin: 0;
 }
+
+/* 관리자 문의·신고 카드의 바로 답장(app/admin/reply-box.tsx) */
+.admin-reply {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.admin-reply .small-note {
+  margin: 0;
+}
+.admin-reply textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  background: var(--page);
+}
