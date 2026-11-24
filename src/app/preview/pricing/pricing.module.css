@@ -1,0 +1,596 @@
+/* 요금제 안내(숨김 페이지). 사이트 다른 화면과 달리 어두운 바탕 + 라임 강조. */
+
+.page {
+  --bg: #0a0a0b;
+  --card: #141416;
+  --card-2: #18181b;
+  --line: #26262a;
+  --text: #f2f3f5;
+  --muted: #8b9099;
+  --faint: #5b5f66;
+  --lime: #c8ff1f;
+  --lime-ink: #0a0a0b;
+  min-height: 100vh;
+  background:
+    radial-gradient(60% 420px at 50% 120px, rgba(200, 255, 31, 0.07), transparent 70%), var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 20px 28px;
+}
+.desk {
+  display: none;
+}
+@media (min-width: 900px) {
+  .desk {
+    display: inline;
+  }
+}
+
+/* 머리 */
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+.logo strong {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.logo span {
+  color: var(--muted);
+  font-size: 12px;
+  margin-left: 4px;
+}
+.nav {
+  display: flex;
+  gap: 22px;
+  font-size: 12.5px;
+}
+.nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.nav a:hover,
+.nav .navOn {
+  color: var(--text);
+  font-weight: 700;
+}
+@media (max-width: 640px) {
+  .nav {
+    display: none;
+  }
+}
+
+/* 첫 화면 */
+.hero {
+  text-align: center;
+  padding: 56px 0 44px;
+}
+.pill {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 1px solid rgba(200, 255, 31, 0.45);
+  border-radius: 999px;
+  color: var(--lime);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: rgba(200, 255, 31, 0.06);
+}
+.hero h1 {
+  margin: 22px 0 16px;
+  font-size: clamp(28px, 5vw, 40px);
+  line-height: 1.25;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--lime);
+}
+.hero p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* 요금제 카드 */
+.plans {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  scroll-margin-top: 20px;
+}
+@media (max-width: 900px) {
+  .plans {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .plans {
+    grid-template-columns: 1fr;
+  }
+}
+.plan {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 20px 24px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.featured {
+  border-color: var(--lime);
+  box-shadow:
+    0 0 0 1px rgba(200, 255, 31, 0.25),
+    0 0 36px rgba(200, 255, 31, 0.14);
+}
+.flag {
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--lime);
+  color: var(--lime-ink);
+  font-size: 10px;
+  font-weight: 800;
+}
+.plan h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
+.planDesc {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 30px;
+}
+.price strong {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.wonUnit {
+  font-size: 14px;
+  font-weight: 700;
+}
+.per {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.priceSub {
+  min-height: 18px;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.priceSub b {
+  color: var(--lime);
+  font-weight: 700;
+}
+.cta {
+  display: block;
+  margin: 18px 0 20px;
+  padding: 10px 12px;
+  border: 1px solid #3a3a40;
+  border-radius: 9px;
+  color: var(--text);
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.cta:hover {
+  border-color: #5a5a62;
+  background: #1d1d21;
+}
+.ctaOn,
+.ctaOn:hover {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: var(--lime-ink);
+}
+.ctaOn:hover {
+  filter: brightness(1.05);
+}
+.features {
+  margin: 0;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  font-size: 12px;
+}
+.features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.features i {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(200, 255, 31, 0.14);
+  color: var(--lime);
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 900;
+}
+.features .off {
+  color: var(--faint);
+}
+.features .off i {
+  background: #222226;
+  color: var(--faint);
+}
+
+/* 공통 섹션 머리 */
+.section {
+  margin-top: 76px;
+  scroll-margin-top: 20px;
+}
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+.head h2 {
+  margin: 8px 0 0;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+.head > p {
+  margin: 0;
+  max-width: 440px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
+.headBottom {
+  align-self: flex-end;
+}
+@media (max-width: 760px) {
+  .head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .head > p {
+    text-align: left;
+  }
+}
+.eyebrow {
+  color: var(--lime);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+/* 단체구매 */
+.group {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--card);
+}
+.groupCell {
+  padding: 22px 24px;
+}
+.groupCell + .groupCell {
+  border-left: 1px solid var(--line);
+}
+.groupCell:last-child {
+  background: linear-gradient(90deg, rgba(200, 255, 31, 0.07), transparent 70%), var(--card);
+}
+@media (max-width: 760px) {
+  .group {
+    grid-template-columns: 1fr;
+  }
+  .groupCell + .groupCell {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+.groupLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.tagOutline,
+.tagLime {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.tagOutline {
+  border: 1px solid #3a3a40;
+  color: var(--muted);
+}
+.tagLime {
+  background: var(--lime);
+  color: var(--lime-ink);
+}
+.groupPrice {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 14px;
+}
+.groupPrice strong {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.groupPrice span {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.groupNote {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+}
+.groupNote s {
+  color: var(--faint);
+  margin-right: 4px;
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+@media (max-width: 900px) {
+  .steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.steps li {
+  padding: 16px 18px 18px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 12px;
+}
+.steps span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--lime);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+/* 요금제 비교 */
+.compare {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 860px) {
+  .compare {
+    grid-template-columns: 1fr;
+  }
+}
+.panel {
+  padding: 24px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.panel h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+.panelSub {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.panelFoot {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.legend {
+  display: flex;
+  gap: 16px;
+  margin: 16px 0 6px;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dotGray,
+.dotLime {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+}
+.dotGray {
+  background: #5b5f66;
+}
+.dotLime {
+  background: var(--lime);
+}
+.bars {
+  display: grid;
+  gap: 16px;
+  margin: 18px 0 20px;
+}
+.barRow {
+  display: grid;
+  grid-template-columns: 44px 1fr 74px;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+}
+.barTrack {
+  display: grid;
+  gap: 4px;
+}
+.barGray,
+.barLime {
+  display: block;
+  height: 9px;
+  border-radius: 3px;
+}
+.barGray {
+  background: #4b4e55;
+}
+.barLime {
+  background: var(--lime);
+}
+.barNote {
+  color: var(--faint);
+  text-align: right;
+}
+.barSave {
+  color: var(--lime);
+  font-weight: 800;
+  text-align: right;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.table th {
+  padding: 8px 0;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 10.5px;
+  text-align: right;
+  border-bottom: 1px solid var(--line);
+}
+.table td {
+  padding: 10px 0;
+  text-align: right;
+  border-bottom: 1px solid var(--line);
+}
+.table tr:last-child td {
+  border-bottom: 0;
+}
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+.license {
+  margin-top: 18px;
+}
+.license td {
+  padding: 12px 0;
+}
+.license th:nth-child(2),
+.license td:nth-child(2) {
+  text-align: right;
+  padding-right: 8px;
+}
+.lime {
+  color: var(--lime);
+}
+.chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.muted {
+  background: #2a2a2f;
+  color: var(--muted);
+}
+.even {
+  background: rgba(200, 255, 31, 0.16);
+  color: var(--lime);
+}
+.good {
+  background: var(--lime);
+  color: var(--lime-ink);
+}
+
+/* 자주 묻는 질문 */
+.faq {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 24px;
+}
+@media (max-width: 760px) {
+  .faq {
+    grid-template-columns: 1fr;
+  }
+}
+.faq > div {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.faq h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.faq p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 56px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: 10.5px;
+}
