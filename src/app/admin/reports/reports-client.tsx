@@ -12,6 +12,7 @@ import {
   type ReportTarget,
 } from '@/lib/report-rules';
 import { formatDateTime } from '../format';
+import ReplyBox from '../reply-box';
 import { useAutoRefresh } from '../use-auto-refresh';
 
 const STATUS_CHIP: Record<ReportStatus, string> = {
@@ -51,7 +52,9 @@ export default function ReportsClient({
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
-  const editing = Object.keys(drafts).length > 0;
+  // 답장을 쓰고 있는 카드(쓰는 동안 자동 새로고침을 멈춘다)
+  const [replying, setReplying] = useState<Record<string, boolean>>({});
+  const editing = Object.keys(drafts).length > 0 || Object.values(replying).some(Boolean);
   const router = useAutoRefresh(editing || Boolean(deleting) || Boolean(busy));
 
   const counts = useMemo(() => {
@@ -301,11 +304,31 @@ export default function ReportsClient({
                       </button>
                     </div>
                   )}
+                  {report.reporterEmail ? (
+                    <ReplyBox
+                      endpoint={`/api/admin/reports/${encodeURIComponent(report.id)}/reply`}
+                      to={report.reporterEmail}
+                      doneNote="보내면 메모에 남겨요(처리 상태는 그대로예요)."
+                      onEditing={(on) =>
+                        setReplying((current) => ({ ...current, [report.id]: on }))
+                      }
+                      onSent={() => {
+                        say('답장을 보냈어요.');
+                        router.refresh();
+                      }}
+                    />
+                  ) : (
+                    <span className="small-note">
+                      신고한 사람의 이메일이 없어 답장할 수 없어요.
+                    </span>
+                  )}
                 </div>
                 <div className="admin-actions admin-actions-col">
-                  <a className="button button-outline" href={reply}>
-                    메일로 답장
-                  </a>
+                  {report.reporterEmail && (
+                    <a className="text-button" href={reply}>
+                      내 메일 앱으로
+                    </a>
+                  )}
                   {report.status === 'new' && (
                     <button
                       type="button"

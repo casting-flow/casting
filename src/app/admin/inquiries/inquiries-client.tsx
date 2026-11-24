@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import type { AdminInquiry } from '@/lib/admin-inquiries';
 import { INQUIRY_KINDS, INQUIRY_STATUS, type InquiryKind, type InquiryStatus } from '@/lib/inquiry';
 import { formatDateTime } from '../format';
+import ReplyBox from '../reply-box';
 import { useAutoRefresh } from '../use-auto-refresh';
 
 const STATUS_CHIP: Record<InquiryStatus, string> = {
@@ -29,7 +30,9 @@ export default function InquiriesClient({
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
-  const editing = Object.keys(drafts).length > 0;
+  // 답장을 쓰고 있는 카드(쓰는 동안 자동 새로고침을 멈춘다)
+  const [replying, setReplying] = useState<Record<string, boolean>>({});
+  const editing = Object.keys(drafts).length > 0 || Object.values(replying).some(Boolean);
   const router = useAutoRefresh(editing || Boolean(deleting) || Boolean(busy));
 
   const counts = useMemo(() => {
@@ -90,9 +93,9 @@ export default function InquiriesClient({
     <section className="admin-body">
       <h1 className="page-title">문의 처리함</h1>
       <p className="muted admin-lead">
-        문의하기(/contact)로 들어온 문의예요. 메일 알림이 없으니 여기서 확인해 주세요. 답장은
-        &lsquo;메일로 답장&rsquo;을 누르면 내 메일 앱에서 보낼 수 있어요. 문의는 1년이 지나면
-        자동으로 지워져요.
+        문의하기(/contact)로 들어온 문의예요. &lsquo;답장 쓰기&rsquo;로 여기서 바로 답장 메일을 보낼
+        수 있어요(사이트 메일로 보내고, 보낸 내용은 메모에 남아요). 문의는 1년이 지나면 자동으로
+        지워져요.
       </p>
 
       <div className="admin-tools">
@@ -231,10 +234,20 @@ export default function InquiriesClient({
                       </button>
                     </div>
                   )}
+                  <ReplyBox
+                    endpoint={`/api/admin/inquiries/${encodeURIComponent(inquiry.id)}/reply`}
+                    to={inquiry.email}
+                    doneNote="보내면 메모에 남기고 완료로 바꿔요."
+                    onEditing={(on) => setReplying((current) => ({ ...current, [inquiry.id]: on }))}
+                    onSent={() => {
+                      say('답장을 보냈어요.');
+                      router.refresh();
+                    }}
+                  />
                 </div>
                 <div className="admin-actions admin-actions-col">
-                  <a className="button button-outline" href={reply}>
-                    메일로 답장
+                  <a className="text-button" href={reply}>
+                    내 메일 앱으로
                   </a>
                   {inquiry.status !== 'doing' && inquiry.status !== 'done' && (
                     <button
