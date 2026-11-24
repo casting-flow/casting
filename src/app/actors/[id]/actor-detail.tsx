@@ -58,7 +58,6 @@ export default function ActorDetail({
       href: `/actors/${profile.userId}`,
     });
   }, [viewer, profile.userId, profile.name, profile.region, profile.birthYear, profile.photos]);
-  const embed = profile.videoUrl ? embedUrl(profile.videoUrl) : null;
   const available = roles.filter((role) => !proposed.includes(role.id));
   const proposedLabels = roles
     .filter((role) => proposed.includes(role.id))
@@ -232,24 +231,38 @@ export default function ActorDetail({
             )}
             {tab === 'video' && (
               <div className="tab-body">
-                {embed ? (
-                  <div className="video-frame">
-                    <iframe
-                      src={embed}
-                      title={`${profile.name} 연기 영상`}
-                      allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
+                {profile.videoUrls.length ? (
+                  <div className="video-list">
+                    {profile.videoUrls.map((url, index) => {
+                      const embed = embedUrl(url);
+                      const label =
+                        profile.videoUrls.length > 1
+                          ? `${profile.name} 연기 영상 ${index + 1}`
+                          : `${profile.name} 연기 영상`;
+                      return embed ? (
+                        <div key={url} className="video-frame">
+                          <iframe
+                            src={embed}
+                            title={label}
+                            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : (
+                        <a
+                          key={url}
+                          className="button button-outline"
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {profile.videoUrls.length > 1
+                            ? `연기 영상 ${index + 1} 열기 ↗`
+                            : '연기 영상 열기 ↗'}
+                        </a>
+                      );
+                    })}
                   </div>
-                ) : profile.videoUrl ? (
-                  <a
-                    className="button button-outline"
-                    href={profile.videoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    연기 영상 열기 ↗
-                  </a>
                 ) : (
                   <p className="muted">등록된 연기 영상이 없습니다.</p>
                 )}

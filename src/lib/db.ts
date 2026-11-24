@@ -204,6 +204,8 @@ async function initialize(database: Conn) {
     await addColumn(database, 'roles', 'project_id', 'TEXT');
     await addColumn(database, 'actor_profiles', 'agency', "TEXT NOT NULL DEFAULT ''");
     await addColumn(database, 'actor_profiles', 'documents', "TEXT NOT NULL DEFAULT '[]'");
+    // 연기 영상을 여러 개 올릴 수 있게 링크 전부를 담는다. video_url은 그중 첫 번째(대표)로 계속 채운다.
+    await addColumn(database, 'actor_profiles', 'video_urls', "TEXT NOT NULL DEFAULT '[]'");
     await addColumn(database, 'audition_events', 'place', "TEXT NOT NULL DEFAULT ''");
     await addColumn(database, 'audition_events', 'meeting_type', "TEXT NOT NULL DEFAULT ''");
     // 프로젝트 정보 세분화: 장르·제작 구분·분량·공개처·제작진·소개·지역·일정 단계·제공 항목.

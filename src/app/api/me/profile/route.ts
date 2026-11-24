@@ -13,6 +13,7 @@ import {
   IMAGE_TAGS,
   MAX_SKILLS,
   MAX_TAGS,
+  MAX_VIDEOS,
   REGIONS,
   SKILLS,
   type Filmography,
@@ -87,6 +88,22 @@ export async function PUT(request: NextRequest) {
       { error: `소개글은 ${PROFILE_INTRO_MAX}자까지 쓸 수 있어요. 조금 줄여 주세요.` },
       { status: 400 },
     );
+  // 연기 영상 링크는 여러 개(최대 MAX_VIDEOS개). 예전 화면이 보내는 videoUrl 하나도 받는다.
+  const rawVideos: unknown[] = Array.isArray(body.videoUrls) ? body.videoUrls : [body.videoUrl];
+  const filledVideos = rawVideos.filter((url) => typeof url === 'string' && url.trim());
+  if (filledVideos.length > MAX_VIDEOS)
+    return NextResponse.json(
+      { error: `연기 영상은 ${MAX_VIDEOS}개까지 올릴 수 있어요.` },
+      { status: 400 },
+    );
+  const checkedVideos = filledVideos.map((url) => safeUrl(url));
+  // 주소가 아닌 값을 말없이 버리지 않고 알려 준다.
+  if (checkedVideos.some((url) => !url))
+    return NextResponse.json(
+      { error: '연기 영상 링크를 확인해 주세요. https://로 시작하는 주소만 저장할 수 있어요.' },
+      { status: 400 },
+    );
+  const videoUrls = [...new Set(checkedVideos)];
   const name = requiredText(body.name, 60);
   if (!name) return NextResponse.json({ error: '이름을 입력해 주세요.' }, { status: 400 });
   const profile = await updateProfile(actorId, {
@@ -101,7 +118,8 @@ export async function PUT(request: NextRequest) {
     tags: cleanList(body.tags, IMAGE_TAGS, MAX_TAGS),
     skills: cleanList(body.skills, SKILLS, MAX_SKILLS),
     photos,
-    videoUrl: safeUrl(body.videoUrl),
+    videoUrl: videoUrls[0] ?? '',
+    videoUrls,
     filmography,
     // 기간으로 넣을 수 있게 되어 한도를 1년(366일)으로 늘렸다(lib/date-ranges.ts).
     unavailableDates: cleanList(body.unavailableDates, null, MAX_UNAVAILABLE_DAYS).filter((date) =>

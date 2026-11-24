@@ -29,6 +29,7 @@ import {
   IMAGE_TAG_GROUPS,
   MAX_SKILLS,
   MAX_TAGS,
+  MAX_VIDEOS,
   profileCompletion,
   REGIONS,
   SKILL_GROUPS,
@@ -150,6 +151,9 @@ export default function ProfileEditor({ initial }: { initial: ActorProfile }) {
   const dirty = JSON.stringify(profile) !== JSON.stringify(saved);
   // 소개글 글자 수 제한(서버도 같은 규칙). 예전에 길게 쓴 글은 자르지 않고 줄이도록 안내한다.
   const introOver = profile.intro.trim().length > PROFILE_INTRO_MAX;
+
+  // 영상 링크 입력칸. 하나도 없으면 빈칸 하나를 보여 준다.
+  const videoInputs = profile.videoUrls.length ? profile.videoUrls : [''];
 
   const update = <K extends keyof ActorProfile>(key: K, value: ActorProfile[K]) =>
     setProfile((current) => ({ ...current, [key]: value }));
@@ -854,26 +858,66 @@ export default function ProfileEditor({ initial }: { initial: ActorProfile }) {
             </section>
 
             <section id="video" className="editor-card">
-              <h2>연기 영상</h2>
+              <h2>
+                연기 영상{' '}
+                <small>
+                  최대 {MAX_VIDEOS}개 · {videoInputs.filter((url) => url.trim()).length}개
+                </small>
+              </h2>
               <div className="role-form">
-                <label>
-                  영상 링크
-                  <input
-                    type="url"
-                    value={profile.videoUrl}
-                    onChange={(event) => update('videoUrl', event.target.value)}
-                    placeholder="https://www.youtube.com/watch?v=..."
-                  />
-                  <small className="hint">YouTube·Vimeo 링크는 프로필에서 바로 재생됩니다.</small>
-                </label>
-                {profile.videoUrl && embedUrl(profile.videoUrl) && (
-                  <div className="video-frame">
-                    <iframe
-                      src={embedUrl(profile.videoUrl)!}
-                      title="연기 영상 미리보기"
-                      allowFullScreen
-                    />
+                {videoInputs.map((url, index) => (
+                  <div key={index} className="video-link">
+                    <div className="video-link-row">
+                      <input
+                        type="url"
+                        aria-label={`영상 링크 ${index + 1}`}
+                        value={url}
+                        onChange={(event) =>
+                          update(
+                            'videoUrls',
+                            videoInputs.map((item, i) => (i === index ? event.target.value : item)),
+                          )
+                        }
+                        placeholder="https://www.youtube.com/watch?v=..."
+                      />
+                      {videoInputs.length > 1 && (
+                        <button
+                          type="button"
+                          className="text-button"
+                          aria-label={`영상 링크 ${index + 1} 삭제`}
+                          onClick={() =>
+                            update(
+                              'videoUrls',
+                              videoInputs.filter((_, i) => i !== index),
+                            )
+                          }
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                    {embedUrl(url) && (
+                      <div className="video-frame">
+                        <iframe
+                          src={embedUrl(url)!}
+                          title={`연기 영상 ${index + 1} 미리보기`}
+                          allowFullScreen
+                        />
+                      </div>
+                    )}
                   </div>
+                ))}
+                <small className="hint">
+                  YouTube·Vimeo 링크는 프로필에서 바로 재생됩니다. 맨 위 영상이 대표 영상이에요.
+                </small>
+                {videoInputs.length < MAX_VIDEOS && (
+                  <button
+                    type="button"
+                    className="button button-soft full"
+                    onClick={() => update('videoUrls', [...videoInputs, ''])}
+                  >
+                    ＋ 영상 추가
+                  </button>
                 )}
               </div>
             </section>

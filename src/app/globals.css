@@ -3254,6 +3254,21 @@ body:has(.save-bar) .toast {
   height: 100%;
   border: 0;
 }
+/* 연기 영상 여러 개(프로필 편집·배우 상세) */
+.video-list,
+.video-link {
+  display: grid;
+  gap: 10px;
+}
+.video-link-row {
+  display: grid;
+  grid-template-columns: 1fr 28px;
+  gap: 6px;
+  align-items: center;
+}
+.video-link-row:has(> :only-child) {
+  grid-template-columns: 1fr;
+}
 .photo-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

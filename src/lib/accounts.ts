@@ -202,6 +202,16 @@ function parseDocuments(value: unknown): ProfileDocument[] {
     .slice(0, MAX_DOCUMENTS);
 }
 
+/** 영상 링크 목록. video_urls가 비어 있는 예전 프로필은 video_url 하나로 채운다. */
+function videoFields(row: Row) {
+  const list = parseList<unknown>(row.video_urls).filter(
+    (url): url is string => typeof url === 'string' && url !== '',
+  );
+  const legacy = String(row.video_url ?? '');
+  const videoUrls = list.length ? list : legacy ? [legacy] : [];
+  return { videoUrl: videoUrls[0] ?? '', videoUrls };
+}
+
 function profileFromRow(row: Row): ActorProfileFull {
   return {
     userId: String(row.user_id),
@@ -216,7 +226,7 @@ function profileFromRow(row: Row): ActorProfileFull {
     tags: parseList<string>(row.tags),
     skills: parseList<string>(row.skills),
     photos: parseList<string>(row.photos),
-    videoUrl: String(row.video_url),
+    ...videoFields(row),
     filmography: parseList<Filmography>(row.filmography),
     unavailableDates: parseList<string>(row.unavailable_dates),
     isPublic: Boolean(row.is_public),
@@ -419,7 +429,7 @@ export async function updateProfile(
   await db()
     .prepare(
       `UPDATE actor_profiles SET gender=?,birth_year=?,birth_date=?,height=?,weight=?,region=?,intro=?,tags=?,skills=?,
-      photos=?,video_url=?,filmography=?,unavailable_dates=?,is_public=?,agency=?,documents=?,updated_at=? WHERE user_id=?`,
+      photos=?,video_url=?,video_urls=?,filmography=?,unavailable_dates=?,is_public=?,agency=?,documents=?,updated_at=? WHERE user_id=?`,
     )
     .run(
       input.gender,
@@ -432,7 +442,8 @@ export async function updateProfile(
       JSON.stringify(input.tags),
       JSON.stringify(input.skills),
       JSON.stringify(input.photos),
-      input.videoUrl,
+      input.videoUrls[0] ?? '',
+      JSON.stringify(input.videoUrls),
       JSON.stringify(input.filmography),
       JSON.stringify(input.unavailableDates),
       Number(input.isPublic),
