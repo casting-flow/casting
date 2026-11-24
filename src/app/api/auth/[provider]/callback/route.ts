@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { findOAuthUser, getUserByEmail, linkExistingAccount } from '@/lib/accounts';
+import { findOAuthUser, getUserByEmail, getUserById, linkExistingAccount } from '@/lib/accounts';
 import { homeFor, startSession } from '@/lib/auth';
 import { claimApplications } from '@/lib/db';
 import { decideLink, isProvider, openPayload, sealPayload } from '@/lib/oauth';
@@ -61,13 +61,19 @@ export async function GET(
     if (linked?.suspendedAt || (decision.kind === 'link' && emailOwner?.suspendedAt))
       return done('/login?error=suspended');
     // 예전 이메일 가입 계정이면 이 소셜 계정을 붙인다(비밀번호는 지운다).
+    // 붙이면서 메일 주인 확인도 켜지므로(email_verified=1) 바뀐 계정 정보를 다시 읽는다.
     if (decision.kind === 'link' && emailOwner)
       await linkExistingAccount(emailOwner.id, provider, profile.subject, profile.email);
-    const user = decision.kind === 'login' ? linked : decision.kind === 'link' ? emailOwner : null;
+    const user =
+      decision.kind === 'login'
+        ? linked
+        : decision.kind === 'link' && emailOwner
+          ? await getUserById(emailOwner.id)
+          : null;
 
     if (user) {
       await startSession({ userId: user.id, role: user.role });
-      if (user.role === 'actor') await claimApplications(user.id, user.email);
+      await claimApplications(user);
       const target =
         saved.next &&
         // 관리자 화면(/admin)은 역할과 상관없이 돌아간다(권한은 그 화면이 확인한다).

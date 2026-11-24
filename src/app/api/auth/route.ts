@@ -32,8 +32,9 @@ export async function POST(request: NextRequest) {
       { status: 403 },
     );
   await startSession({ userId: found.user.id, role: found.user.role });
-  // 로그아웃 상태로 낸 지원서를 이 계정에 붙인다 ('내 지원 현황'에서 다시 찾을 수 있도록)
-  if (found.user.role === 'actor') await claimApplications(found.user.id, found.user.email);
+  // 로그아웃 상태로 낸 지원서를 이 계정에 붙인다 ('내 지원 현황'에서 다시 찾을 수 있도록).
+  // 메일 인증 없이 만든 예전 계정은 붙이지 않는다(비밀번호 재설정으로 메일을 확인하면 그때 붙는다).
+  await claimApplications(found.user);
   return NextResponse.json({ ok: true, role: found.user.role, next: homeFor(found.user.role) });
 }
 

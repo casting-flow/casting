@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     emailVerified: true,
   });
   await startSession({ userId: user.id, role: user.role });
-  if (role === 'actor') await claimApplications(user.id, email);
+  await claimApplications(user);
   const then = safeThen(body.then);
   return NextResponse.json(
     { ok: true, next: role === 'actor' ? then || '/me/profile' : homeFor(role) },
