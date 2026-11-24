@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
   });
   await linkOAuthAccount(user.id, pending.provider, pending.subject, email);
   await startSession({ userId: user.id, role: user.role });
-  if (role === 'actor') await claimApplications(user.id, email);
+  // 카카오처럼 이메일을 직접 입력한 경우는 메일 주인 확인 전이라 지원서를 붙이지 않는다.
+  await claimApplications(user);
   return finish(user);
 }

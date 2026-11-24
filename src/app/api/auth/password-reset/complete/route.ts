@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { homeFor, startSession } from '@/lib/auth';
+import { claimApplications } from '@/lib/db';
 import { openPayload } from '@/lib/oauth';
 import { completePasswordReset } from '@/lib/password-reset';
 import {
@@ -29,6 +30,8 @@ export async function POST(request: NextRequest) {
   if (!user)
     return NextResponse.json({ error: RESET_EXPIRED_MESSAGE, expired: true }, { status: 400 });
   await startSession({ userId: user.id, role: user.role, version: user.sessionVersion });
+  // 재설정 링크로 메일 주인임을 확인했으니, 그동안 붙이지 못한 비회원 지원서를 이제 붙인다.
+  await claimApplications(user);
   const response = NextResponse.json({ ok: true, next: homeFor(user.role) });
   response.cookies.delete({ name: RECOVERY_COOKIE, path: '/' });
   return response;

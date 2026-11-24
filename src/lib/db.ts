@@ -8,6 +8,7 @@ import { MESSAGE_PREVIEW_SQL } from './chat-files';
 import { attendanceMessage, type AttendanceCheck, type AttendanceStatus } from './attendance';
 import { schoolDomainRows } from './school-domains';
 import { hiddenRoleSql } from './test-listing';
+import { mayClaimApplications, type ClaimCandidate } from './claim-rules';
 import { conn as rawConnection, withAdvisoryLock, type Conn, type Statement } from './sql';
 
 // 스키마 생성은 프로세스당 한 번만, 다른 인스턴스와 겹치지 않게 실행한다.
@@ -319,10 +320,19 @@ async function initialize(database: Conn) {
     // session_version: 비밀번호를 바꾸면 올라가서 다른 기기의 로그인을 끊는다.
     // email_verified: 메일 주인임을 확인한 계정(구글 로그인·메일 인증번호·재설정 링크).
     await addColumn(database, 'users', 'session_version', 'INTEGER NOT NULL DEFAULT 0');
+    // 칸을 처음 만들 때만, 그 전에 구글로 가입한 계정을 확인된 것으로 채운다.
+    // 다시 실행하면 카카오에서 이메일을 직접 입력해 가입한(확인 안 된) 계정까지 확인됨이 되므로 한 번만 한다.
+    const hadEmailVerified = await database
+      .prepare(
+        `SELECT 1 FROM information_schema.columns
+         WHERE table_schema = current_schema() AND table_name='users' AND column_name='email_verified'`,
+      )
+      .get();
     await addColumn(database, 'users', 'email_verified', 'INTEGER NOT NULL DEFAULT 0');
-    await database.exec(
-      `UPDATE users SET email_verified=1 WHERE id IN (SELECT user_id FROM oauth_accounts)`,
-    );
+    if (!hadEmailVerified)
+      await database.exec(
+        `UPDATE users SET email_verified=1 WHERE id IN (SELECT user_id FROM oauth_accounts)`,
+      );
     // 한 트랜잭션 안에서 돌아서, 도중에 실패하면 아래 기준 칸도 생기지 않고 다음 시작에 다시 시도한다.
     await database.exec(`
     -- 이메일 가입 인증번호. 원문은 메일로만 보내고 여기에는 해시만 둔다.
@@ -854,13 +864,16 @@ export async function listActorApplications(actorId: string) {
  * 로그아웃 상태로 지원하면 actor_id 없이 이메일만 남아서, 나중에 같은 이메일로 로그인해도
  * '내 지원 현황'에 나오지 않고 접수 링크도 이 브라우저에서만 찾을 수 있었다.
  *
- * 방금 이 이메일로 비밀번호 인증을 통과한 사람만 호출한다 (로그인·가입 직후).
+ * 로그인·가입 직후, 또는 메일 주인임을 새로 확인했을 때(비밀번호 재설정) 호출한다.
+ * 메일 주인임을 확인하지 않은 계정에는 붙이지 않는다(lib/claim-rules.ts). 남의 이메일을 입력해
+ * 가입한 사람이 그 사람의 지원서를 가져가지 못하게 하려는 것이다.
  * 이미 주인이 있는 지원서(actor_id가 찬 것)는 건드리지 않는다.
  */
-export async function claimApplications(actorId: string, email: string) {
+export async function claimApplications(user: { id: string } & ClaimCandidate) {
+  if (!mayClaimApplications(user)) return 0;
   const result = await db()
     .prepare('UPDATE applications SET actor_id=? WHERE actor_id IS NULL AND email=?')
-    .run(actorId, email.toLowerCase());
+    .run(user.id, user.email.toLowerCase());
   return Number(result.changes);
 }
 
