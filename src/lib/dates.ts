@@ -9,3 +9,17 @@ export function koDate(value: string | null | undefined): string {
   if (Number.isNaN(date.valueOf())) return value;
   return date.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
 }
+
+/** 시각까지: '2026. 12. 5. 오후 3:04' (한국 시간) */
+export function koDateTime(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.valueOf())) return String(value);
+  return date.toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}

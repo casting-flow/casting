@@ -61,7 +61,7 @@ async function initialize(database: Conn) {
   const migrated = await database
     .prepare(
       `SELECT 1 FROM information_schema.columns
-       WHERE table_schema = current_schema() AND table_name='verifications' AND column_name='auto_reviewed'`,
+       WHERE table_schema = current_schema() AND table_name='guardian_consents' AND column_name='revoked_at'`,
     )
     .get();
   if (!migrated) {
@@ -204,6 +204,8 @@ async function initialize(database: Conn) {
     await addColumn(database, 'roles', 'project_id', 'TEXT');
     await addColumn(database, 'actor_profiles', 'agency', "TEXT NOT NULL DEFAULT ''");
     await addColumn(database, 'actor_profiles', 'documents', "TEXT NOT NULL DEFAULT '[]'");
+    // 연기 영상을 여러 개 올릴 수 있게 링크 전부를 담는다. video_url은 그중 첫 번째(대표)로 계속 채운다.
+    await addColumn(database, 'actor_profiles', 'video_urls', "TEXT NOT NULL DEFAULT '[]'");
     await addColumn(database, 'audition_events', 'place', "TEXT NOT NULL DEFAULT ''");
     await addColumn(database, 'audition_events', 'meeting_type', "TEXT NOT NULL DEFAULT ''");
     // 프로젝트 정보 세분화: 장르·제작 구분·분량·공개처·제작진·소개·지역·일정 단계·제공 항목.
@@ -355,7 +357,6 @@ async function initialize(database: Conn) {
     -- 회원·공고가 지워져도 기록이 남도록 외래 키 없이 id와 이름(target_label)을 글자로 둔다.
     -- subject_user_id: 신고당한 회원(없으면 ''), reporter_id: 신고한 회원(로그인 안 했으면 '').
     -- 신고한 사람은 상대에게 알리지 않는다. 1년이 지난 신고는 새 신고가 들어올 때 지운다.
-    -- 이 표의 handled_at이 구조 변경 기준(맨 위 migrated)이다. 구조를 바꿀 때는 이 기준도 새로 만든 것으로 옮긴다.
     CREATE TABLE IF NOT EXISTS reports (
       id TEXT PRIMARY KEY, target_type TEXT NOT NULL, target_id TEXT NOT NULL,
       target_label TEXT NOT NULL DEFAULT '', target_link TEXT NOT NULL DEFAULT '',
@@ -367,6 +368,18 @@ async function initialize(database: Conn) {
     CREATE INDEX IF NOT EXISTS reports_created ON reports(created_at);
     CREATE INDEX IF NOT EXISTS reports_target ON reports(target_type, target_id);
     CREATE INDEX IF NOT EXISTS reports_subject ON reports(subject_user_id);
+  `);
+    await database.exec(`
+    -- 만 14세 미만 배우의 보호자(법정대리인) 동의(lib/guardian-consent.ts). 계정 하나에 한 줄.
+    -- 보호자 이메일로 보낸 링크(토큰 원문은 메일로만, 여기에는 해시만)에서 보호자가 직접 동의한다.
+    -- consented_at이 있고 revoked_at이 비어 있어야 동의한 상태다. 같은 링크로 나중에 동의를 철회할 수 있다.
+    -- 이 표의 revoked_at이 구조 변경 기준(맨 위 migrated)이다. 구조를 바꿀 때는 이 기준도 새로 만든 것으로 옮긴다.
+    CREATE TABLE IF NOT EXISTS guardian_consents (
+      user_id TEXT PRIMARY KEY REFERENCES users(id), guardian_name TEXT NOT NULL,
+      guardian_email TEXT NOT NULL, relation TEXT NOT NULL, token_hash TEXT NOT NULL UNIQUE,
+      requested_at TEXT NOT NULL, expires_at TEXT NOT NULL, consented_at TEXT,
+      consent_ip TEXT NOT NULL DEFAULT '', revoked_at TEXT
+    );
   `);
     await enableRowLevelSecurity(database);
   }

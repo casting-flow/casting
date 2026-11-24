@@ -19,12 +19,18 @@ export type ActorProfile = {
   tags: string[];
   skills: string[];
   photos: string[];
+  /** 대표 연기 영상(videoUrls의 첫 번째). 지원서 미리 채우기·비교 화면이 이 값을 쓴다. */
   videoUrl: string;
+  /** 연기 영상 링크 전부(최대 MAX_VIDEOS개). 예전 프로필은 video_url 하나만 있다. */
+  videoUrls: string[];
   filmography: Filmography[];
   unavailableDates: string[];
   isPublic: boolean;
   updatedAt: string;
 };
+
+/** 프로필에 올릴 수 있는 연기 영상 링크 수 */
+export const MAX_VIDEOS = 5;
 
 export type ActorFilters = {
   q?: string;
@@ -185,7 +191,7 @@ export function profileCompletion(profile: ActorProfile) {
     profile.skills.length > 0,
     profile.photos.length > 0,
     profile.photos.length >= 3,
-    Boolean(profile.videoUrl),
+    Boolean(profile.videoUrl) || (profile.videoUrls?.length ?? 0) > 0,
     profile.filmography.length > 0,
   ];
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);

@@ -8,11 +8,13 @@ import {
   type ProfileDocument,
 } from '@/lib/accounts';
 import { getActorId } from '@/lib/auth';
+import { hasGuardianConsent } from '@/lib/guardian-consent';
 import {
   cleanList,
   IMAGE_TAGS,
   MAX_SKILLS,
   MAX_TAGS,
+  MAX_VIDEOS,
   REGIONS,
   SKILLS,
   type Filmography,
@@ -78,8 +80,11 @@ export async function PUT(request: NextRequest) {
   const birthYear = birthDate
     ? Number(birthDate.slice(0, 4))
     : intIn(body.birthYear, 1930, new Date().getFullYear());
-  // 만 14세 미만은 보호자 동의 절차가 없어 프로필을 받지 않는다(lib/child-policy.ts).
-  if (isChildProfile(birthDate ? manAge(birthDate) : null, birthYear))
+  // 만 14세 미만은 보호자가 메일로 동의한 계정만 프로필을 저장할 수 있다(lib/guardian-consent.ts).
+  if (
+    isChildProfile(birthDate ? manAge(birthDate) : null, birthYear) &&
+    !(await hasGuardianConsent(actorId))
+  )
     return NextResponse.json({ error: CHILD_PROFILE_MESSAGE, child: true }, { status: 400 });
   // 소개글은 말없이 자르지 않고, 넘치면 줄여 달라고 알린다(예전에 길게 쓴 글을 잃지 않게).
   if (typeof body.intro === 'string' && body.intro.trim().length > PROFILE_INTRO_MAX)
@@ -87,6 +92,22 @@ export async function PUT(request: NextRequest) {
       { error: `소개글은 ${PROFILE_INTRO_MAX}자까지 쓸 수 있어요. 조금 줄여 주세요.` },
       { status: 400 },
     );
+  // 연기 영상 링크는 여러 개(최대 MAX_VIDEOS개). 예전 화면이 보내는 videoUrl 하나도 받는다.
+  const rawVideos: unknown[] = Array.isArray(body.videoUrls) ? body.videoUrls : [body.videoUrl];
+  const filledVideos = rawVideos.filter((url) => typeof url === 'string' && url.trim());
+  if (filledVideos.length > MAX_VIDEOS)
+    return NextResponse.json(
+      { error: `연기 영상은 ${MAX_VIDEOS}개까지 올릴 수 있어요.` },
+      { status: 400 },
+    );
+  const checkedVideos = filledVideos.map((url) => safeUrl(url));
+  // 주소가 아닌 값을 말없이 버리지 않고 알려 준다.
+  if (checkedVideos.some((url) => !url))
+    return NextResponse.json(
+      { error: '연기 영상 링크를 확인해 주세요. https://로 시작하는 주소만 저장할 수 있어요.' },
+      { status: 400 },
+    );
+  const videoUrls = [...new Set(checkedVideos)];
   const name = requiredText(body.name, 60);
   if (!name) return NextResponse.json({ error: '이름을 입력해 주세요.' }, { status: 400 });
   const profile = await updateProfile(actorId, {
@@ -101,7 +122,8 @@ export async function PUT(request: NextRequest) {
     tags: cleanList(body.tags, IMAGE_TAGS, MAX_TAGS),
     skills: cleanList(body.skills, SKILLS, MAX_SKILLS),
     photos,
-    videoUrl: safeUrl(body.videoUrl),
+    videoUrl: videoUrls[0] ?? '',
+    videoUrls,
     filmography,
     // 기간으로 넣을 수 있게 되어 한도를 1년(366일)으로 늘렸다(lib/date-ranges.ts).
     unavailableDates: cleanList(body.unavailableDates, null, MAX_UNAVAILABLE_DAYS).filter((date) =>

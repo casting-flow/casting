@@ -3254,6 +3254,21 @@ body:has(.save-bar) .toast {
   height: 100%;
   border: 0;
 }
+/* 연기 영상 여러 개(프로필 편집·배우 상세) */
+.video-list,
+.video-link {
+  display: grid;
+  gap: 10px;
+}
+.video-link-row {
+  display: grid;
+  grid-template-columns: 1fr 28px;
+  gap: 6px;
+  align-items: center;
+}
+.video-link-row:has(> :only-child) {
+  grid-template-columns: 1fr;
+}
 .photo-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -7813,4 +7828,41 @@ a.admin-tile:hover {
   .web-wide .status-side > .info-panel:first-child {
     margin-top: 0;
   }
+}
+
+/* 보호자 동의 화면(/guardian-consent)과 프로필 편집의 보호자 동의 카드 */
+.guardian-items {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--page);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.guardian-items dt {
+  font-weight: 700;
+}
+.guardian-items dd {
+  margin: 2px 0 0;
+  color: var(--muted);
+}
+.guardian-done {
+  display: grid;
+  gap: 10px;
+  line-height: 1.6;
+}
+.guardian-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--page);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.guardian-card p {
+  margin: 0;
 }
