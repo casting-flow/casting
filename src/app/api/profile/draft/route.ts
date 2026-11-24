@@ -8,6 +8,7 @@ import { CHAT_FILE_MAX_BYTES, detectChatFile } from '@/lib/chat-files';
 import { extractPdfText } from '@/lib/pdf-text';
 import { draftFromText, draftSize } from '@/lib/profile-draft';
 import { profileAiConfigured, ProfileAiUnavailable, readProfileFile } from '@/lib/profile-ai';
+import { parseThumbs } from '@/lib/photo-picks';
 import { overLimit, TOO_MANY } from '@/lib/rate-limit';
 import { deleteStoredPaths, readStoredBytes } from '@/lib/storage';
 import { isStoredPdfName, PROFILE_PDF_MAX_BYTES } from '@/lib/upload-limits';
@@ -66,6 +67,8 @@ async function handle(request: NextRequest, remember: (path: string) => void) {
 
   let bytes: Uint8Array;
   let fileName = 'profile.pdf';
+  // 브라우저가 파일에서 꺼낸 사진 후보의 미리보기. AI가 그중 배우 사진을 고른다(없어도 된다).
+  let thumbs: string[] | null = parseThumbs(body.photos);
   if (stored) {
     const read = await readStoredBytes(`tmp/${stored}`, PROFILE_PDF_MAX_BYTES);
     if (!read)
@@ -83,7 +86,14 @@ async function handle(request: NextRequest, remember: (path: string) => void) {
       return NextResponse.json({ error: '파일은 4MB 이하만 올릴 수 있습니다.' }, { status: 413 });
     bytes = new Uint8Array(await file.arrayBuffer());
     fileName = file.name;
+    const photos = form?.getAll('photos') ?? [];
+    thumbs = parseThumbs(photos.length ? photos : undefined);
   }
+  if (!thumbs)
+    return NextResponse.json(
+      { error: '사진 후보가 맞지 않아요. 다시 올려 주세요.' },
+      { status: 400 },
+    );
   const ext = detectChatFile(bytes, fileName);
   if (stored && ext !== 'pdf')
     return NextResponse.json({ error: 'PDF 파일만 올릴 수 있어요.' }, { status: 415 });
@@ -104,6 +114,8 @@ async function handle(request: NextRequest, remember: (path: string) => void) {
         quality,
         note: QUALITY_NOTE[quality],
         method: 'rule',
+        // 규칙으로 읽을 때는 사진을 고르지 못한다. 화면은 후보를 보여 주고 배우가 직접 고르게 한다.
+        photoPicks: null,
         // 배우가 "이게 내 PDF에서 읽은 글자야?"를 직접 볼 수 있게 앞부분을 돌려준다.
         preview: text.slice(0, 2000),
       },
@@ -127,10 +139,11 @@ async function handle(request: NextRequest, remember: (path: string) => void) {
     return NextResponse.json({ error: TOO_MANY }, { status: 429 });
 
   try {
-    const draft = await readProfileFile(bytes, ext);
+    const { draft, photoPicks } = await readProfileFile(bytes, ext, thumbs);
     return NextResponse.json(
       {
         draft,
+        photoPicks,
         filled: draftSize(draft),
         quality: 'good',
         note:

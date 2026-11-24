@@ -147,11 +147,11 @@ function saveDoc(doc: PDFDocument) {
   return doc.save({ useObjectStreams: true, updateFieldAppearances: false });
 }
 
-function numberOf(value: unknown, PDFNumber: typeof import('pdf-lib').PDFNumber) {
+export function numberOf(value: unknown, PDFNumber: typeof import('pdf-lib').PDFNumber) {
   return value instanceof PDFNumber ? value.asNumber() : 0;
 }
 
-function filterNames(
+export function filterNames(
   value: unknown,
   PDFName: typeof import('pdf-lib').PDFName,
   PDFArray: typeof import('pdf-lib').PDFArray,
@@ -163,7 +163,7 @@ function filterNames(
 }
 
 /** 사진의 색 채널 수. 흑백 1, 컬러 3, 그 밖(CMYK·팔레트 등)은 0이라 건드리지 않는다. */
-function colorComponents(
+export function colorComponents(
   value: unknown,
   context: PDFDocument['context'],
   lib: typeof import('pdf-lib'),
@@ -194,7 +194,7 @@ function colorComponents(
   return 0;
 }
 
-async function inflate(bytes: Uint8Array) {
+export async function inflate(bytes: Uint8Array) {
   const stream = new Blob([bytes as BlobPart])
     .stream()
     .pipeThrough(new DecompressionStream('deflate'));
@@ -202,7 +202,7 @@ async function inflate(bytes: Uint8Array) {
 }
 
 /** PNG 예측(Predictor 10~15)을 풀어 픽셀만 남긴다. 예측이 없으면(1) 그대로. */
-function unpredict(
+export function unpredict(
   data: Uint8Array,
   width: number,
   height: number,
@@ -242,7 +242,7 @@ function unpredict(
   return out;
 }
 
-function toImageData(pixels: Uint8Array, width: number, height: number, components: number) {
+export function toImageData(pixels: Uint8Array, width: number, height: number, components: number) {
   const rgba = new Uint8ClampedArray(width * height * 4);
   for (let i = 0, j = 0; i < width * height; i += 1, j += components) {
     const r = pixels[j];
@@ -254,7 +254,7 @@ function toImageData(pixels: Uint8Array, width: number, height: number, componen
   return new ImageData(rgba, width, height);
 }
 
-async function encodeJpeg(
+export async function encodeJpeg(
   source: CanvasImageSource & { width: number; height: number },
   scale: number,
   quality: number,

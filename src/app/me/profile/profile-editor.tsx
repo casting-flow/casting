@@ -14,6 +14,8 @@ import {
   SERVER_UPLOAD_MAX_BYTES,
 } from '@/lib/upload-limits';
 import type { ProfileDraft } from '@/lib/profile-draft';
+import { extractPdfPhotos, photoFileCandidate, type PhotoCandidate } from '@/lib/pdf-photos';
+import { initialPhotoPicks } from '@/lib/photo-picks';
 import {
   currentText,
   defaultPick,
@@ -49,6 +51,8 @@ import {
   MAX_UNAVAILABLE_DAYS,
   rangeLabel,
 } from '@/lib/date-ranges';
+
+const MAX_PHOTOS = 8;
 
 const SECTIONS = [
   ['basic', '기본 정보'],
@@ -152,6 +156,11 @@ export default function ProfileEditor({
   const [picked, setPicked] = useState<Record<string, boolean>>({});
   // 배우가 고친 초안 값(고칠 수 있는 항목만). 채우기를 누르면 이 값이 입력칸에 들어간다.
   const [edits, setEdits] = useState<Record<string, string>>({});
+  // 초안 파일에서 꺼낸 사진 후보와, 프로필 사진으로 넣으려고 체크한 것. AI가 고른 사진은 미리 체크된다.
+  const [photoCandidates, setPhotoCandidates] = useState<PhotoCandidate[]>([]);
+  const [photoPicked, setPhotoPicked] = useState<boolean[]>([]);
+  const [photoAiPicked, setPhotoAiPicked] = useState(false);
+  const [applyingDraft, setApplyingDraft] = useState(false);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
@@ -189,21 +198,30 @@ export default function ProfileEditor({
 
   const numberOrNull = (value: string) => (value === '' ? null : Number(value));
 
+  /** 사진을 줄여서 올리고 주소 목록을 돌려준다. 남은 사진 칸만큼만 올린다. */
+  async function uploadPhotoFiles(files: File[]) {
+    const urls: string[] = [];
+    for (const file of files.slice(0, Math.max(0, MAX_PHOTOS - profile.photos.length))) {
+      const form = new FormData();
+      form.append('file', await shrinkImage(file));
+      const response = await fetch('/api/uploads', { method: 'POST', body: form });
+      const data = await readApiJson<{ url: string; error?: string }>(response);
+      if (!response.ok) throw new Error(data.error || '사진을 올리지 못했습니다.');
+      urls.push(data.url);
+    }
+    return urls;
+  }
+
   async function upload(files: FileList | null) {
     if (!files?.length) return;
     setUploading(true);
     setError('');
     try {
-      const urls: string[] = [];
-      for (const file of Array.from(files).slice(0, 8 - profile.photos.length)) {
-        const form = new FormData();
-        form.append('file', await shrinkImage(file));
-        const response = await fetch('/api/uploads', { method: 'POST', body: form });
-        const data = await readApiJson<{ url: string; error?: string }>(response);
-        if (!response.ok) throw new Error(data.error || '사진을 올리지 못했습니다.');
-        urls.push(data.url);
-      }
-      setProfile((current) => ({ ...current, photos: [...current.photos, ...urls].slice(0, 8) }));
+      const urls = await uploadPhotoFiles(Array.from(files));
+      setProfile((current) => ({
+        ...current,
+        photos: [...current.photos, ...urls].slice(0, MAX_PHOTOS),
+      }));
       setNotice('사진을 올렸습니다. 저장을 눌러 프로필에 반영하세요.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '사진을 올리지 못했습니다.');
@@ -316,19 +334,38 @@ export default function ProfileEditor({
     setDraftBusy(true);
     setError('');
     setDraft(null);
+    setPhotoCandidates([]);
+    setPhotoPicked([]);
     try {
       let body: FormData | string = input instanceof File ? '' : input;
+      let candidates: PhotoCandidate[] = [];
       // PDF는 저장소에 잠깐 올리고 이름만 보낸다(20MB까지, 서버가 읽은 뒤 지운다).
       if (input instanceof File) {
+        // 사진 후보는 줄이기 전의 원본에서 꺼낸다(화질이 더 좋다). 사진 파일이면 그 사진이 후보다.
+        const found = isPdfFile(input)
+          ? extractPdfPhotos(input)
+          : photoFileCandidate(input).then((one) => (one ? [one] : []));
         const { file } = await preparePdf(input, 'draft');
         const stored = isPdfFile(file) ? await uploadPdfDirect(file, 'draft') : 'unavailable';
-        if (stored !== 'unavailable') body = JSON.stringify({ stored });
+        candidates = await found;
+        if (stored !== 'unavailable')
+          body = JSON.stringify({ stored, photos: candidates.map((item) => item.thumb) });
         else {
           const shrunk = await shrinkImage(file);
           if (shrunk.size > SERVER_UPLOAD_MAX_BYTES)
             throw new Error('파일은 4MB 이하만 올릴 수 있어요.');
           body = new FormData();
           body.append('file', shrunk);
+          // 서버 요청 크기 제한(4.5MB) 안에 들어가는 만큼만 미리보기를 붙인다.
+          let room = SERVER_UPLOAD_MAX_BYTES - shrunk.size;
+          const sent: PhotoCandidate[] = [];
+          for (const item of candidates) {
+            if (item.thumb.length > room) break;
+            room -= item.thumb.length;
+            body.append('photos', item.thumb);
+            sent.push(item);
+          }
+          candidates = sent;
         }
       }
       const json = typeof body === 'string';
@@ -346,6 +383,12 @@ export default function ProfileEditor({
       if (!response.ok) throw new Error(data.error || '초안을 만들지 못했습니다.');
       setDraft(data.draft as ProfileDraft);
       setDraftNote(data.note || '');
+      const picks = Array.isArray(data.photoPicks) ? (data.photoPicks as number[]) : null;
+      setPhotoCandidates(candidates);
+      setPhotoAiPicked(picks !== null);
+      setPhotoPicked(
+        initialPhotoPicks(picks, candidates.length, MAX_PHOTOS - profile.photos.length),
+      );
       const read = data.draft as ProfileDraft;
       const keys = Object.keys(read) as DraftKey[];
       // 비어 있는 칸만 기본으로 고른다. 이미 넣어 둔 값은 배우가 직접 골라야 바뀐다.
@@ -359,7 +402,7 @@ export default function ProfileEditor({
             .map((key) => [key, editText(key, read[key]!.value)]),
         ),
       );
-      if (data.filled === 0 && !data.note)
+      if (data.filled === 0 && !data.note && !candidates.length)
         setDraftNote('읽을 수 있는 항목을 찾지 못했어요. 아래에 내용을 붙여넣어 보세요.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '초안을 만들지 못했습니다.');
@@ -377,9 +420,23 @@ export default function ProfileEditor({
     return draft[key]!.value;
   }
 
-  /** 고른 항목만 입력칸에 채운다. 실제 저장은 아래 '저장' 버튼을 눌러야 된다. */
-  function applyDraft() {
+  /** 고른 항목만 입력칸에 채운다. 고른 사진은 지금 올린다. 실제 저장은 아래 '저장' 버튼을 눌러야 된다. */
+  async function applyDraft() {
     if (!draft) return;
+    const chosen = photoCandidates.filter((_, index) => photoPicked[index]);
+    let photoUrls: string[] = [];
+    if (chosen.length) {
+      setApplyingDraft(true);
+      setError('');
+      try {
+        photoUrls = await uploadPhotoFiles(chosen.map((item) => item.file));
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : '사진을 올리지 못했습니다.');
+        return;
+      } finally {
+        setApplyingDraft(false);
+      }
+    }
     setProfile((current) => {
       const next = { ...current };
       const take = (key: DraftKey) => (picked[key] ? draftValue(key) : undefined);
@@ -419,11 +476,22 @@ export default function ProfileEditor({
           ...current.filmography,
           ...newFilmography(current.filmography, filmography),
         ].slice(0, 12);
+      if (photoUrls.length) next.photos = [...current.photos, ...photoUrls].slice(0, MAX_PHOTOS);
       return next;
     });
+    closeDraft();
+    setNotice(
+      photoUrls.length
+        ? `초안을 채우고 사진 ${photoUrls.length}장을 넣었어요. 내용을 확인하고 맨 아래 저장을 눌러 주세요.`
+        : '초안을 채웠어요. 내용을 확인하고 맨 아래 저장을 눌러 주세요.',
+    );
+  }
+
+  function closeDraft() {
     setDraft(null);
     setDraftNote('');
-    setNotice('초안을 채웠어요. 내용을 확인하고 맨 아래 저장을 눌러 주세요.');
+    setPhotoCandidates([]);
+    setPhotoPicked([]);
   }
 
   async function save() {
@@ -492,8 +560,9 @@ export default function ProfileEditor({
               </h2>
               <p className="muted small">
                 경력기술서·프로필 PDF나 사진을 올리면 AI가 이름·나이·키·지역·특기·필모그래피를 읽어
-                입력칸 초안을 만들어요. 읽은 값은 바로 저장되지 않고, 확인한 항목만 채웁니다. 올린
-                파일은 읽는 동안에만 쓰이고 저장되지 않아요.
+                입력칸 초안을 만들어요. 파일 속 배우 사진도 찾아서 프로필 사진 후보로 보여 줘요.
+                읽은 값은 바로 저장되지 않고, 확인한 항목과 고른 사진만 채웁니다. 올린 파일은 읽는
+                동안에만 쓰이고 저장되지 않아요.
               </p>
               <p className="muted small" style={{ marginTop: 6 }}>
                 용량이 커도 괜찮아요. 큰 PDF·사진은 자동으로 줄여서 올려요.
@@ -556,9 +625,16 @@ export default function ProfileEditor({
                 </div>
               )}
               {draftNote && <p className="form-error">{draftNote}</p>}
-              {draft && Object.keys(draft).length > 0 && (
+              {draft && (Object.keys(draft).length > 0 || photoCandidates.length > 0) && (
                 <div className="draft-result">
-                  <strong>{Object.keys(draft).length}개 항목을 읽었어요</strong>
+                  <strong>
+                    {Object.keys(draft).length > 0
+                      ? `${Object.keys(draft).length}개 항목을 읽었어요`
+                      : '사진을 찾았어요'}
+                    {Object.keys(draft).length > 0 && photoCandidates.length > 0
+                      ? ` · 사진 ${photoCandidates.length}장`
+                      : ''}
+                  </strong>
                   <p className="muted small">
                     지금 값과 비교해 채울 항목을 골라 주세요. 초안 값은 바로 고칠 수 있어요. 이미
                     넣어 둔 값은 직접 고른 경우에만 바뀌어요.
@@ -682,17 +758,67 @@ export default function ProfileEditor({
                       </div>
                     );
                   })}
+                  {photoCandidates.length > 0 && (
+                    <div className="draft-photos">
+                      <div className="draft-head">
+                        <span className="draft-label">프로필 사진</span>
+                        <small className="draft-tag">
+                          {photoPicked.filter(Boolean).length}장 고름 · 남은 칸{' '}
+                          {Math.max(0, MAX_PHOTOS - profile.photos.length)}장
+                        </small>
+                      </div>
+                      <p className="muted small">
+                        {photoAiPicked
+                          ? '파일에서 꺼낸 사진이에요. AI가 배우 사진으로 보이는 것을 골라 두었어요. 넣을 사진을 확인해 주세요.'
+                          : '파일에서 꺼낸 사진이에요. 프로필 사진으로 넣을 것을 골라 주세요.'}
+                      </p>
+                      <div className="draft-photo-grid">
+                        {photoCandidates.map((item, index) => {
+                          const on = Boolean(photoPicked[index]);
+                          const full =
+                            !on &&
+                            photoPicked.filter(Boolean).length >=
+                              MAX_PHOTOS - profile.photos.length;
+                          return (
+                            <label
+                              key={item.thumb.slice(-40) + index}
+                              className={`draft-photo${on ? ' on' : ''}${full ? ' off' : ''}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={on}
+                                disabled={full}
+                                onChange={(event) =>
+                                  setPhotoPicked((current) =>
+                                    current.map((value, at) =>
+                                      at === index ? event.target.checked : value,
+                                    ),
+                                  )
+                                }
+                              />
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={item.thumb} alt={`파일에서 찾은 사진 ${index + 1}`} />
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {profile.photos.length >= MAX_PHOTOS && (
+                        <small className="draft-hint">
+                          프로필 사진이 이미 {MAX_PHOTOS}장이에요. 아래에서 사진을 지워야 더 넣을 수
+                          있어요.
+                        </small>
+                      )}
+                    </div>
+                  )}
                   <div className="split-actions">
-                    <button className="button button-primary" onClick={applyDraft}>
-                      고른 항목 채우기
-                    </button>
                     <button
-                      className="button button-soft"
-                      onClick={() => {
-                        setDraft(null);
-                        setDraftNote('');
-                      }}
+                      className="button button-primary"
+                      disabled={applyingDraft}
+                      onClick={() => void applyDraft()}
                     >
+                      {applyingDraft ? '사진 올리는 중…' : '고른 항목 채우기'}
+                    </button>
+                    <button className="button button-soft" onClick={closeDraft}>
                       쓰지 않기
                     </button>
                   </div>
@@ -809,7 +935,10 @@ export default function ProfileEditor({
 
             <section id="photos" className="editor-card">
               <h2>
-                프로필 사진 <small>{profile.photos.length}/8 · 첫 번째 사진이 대표 사진</small>
+                프로필 사진{' '}
+                <small>
+                  {profile.photos.length}/{MAX_PHOTOS} · 첫 번째 사진이 대표 사진
+                </small>
               </h2>
               <div className="photo-editor">
                 {profile.photos.map((url, index) => (
@@ -843,7 +972,7 @@ export default function ProfileEditor({
                     </div>
                   </div>
                 ))}
-                {profile.photos.length < 8 && (
+                {profile.photos.length < MAX_PHOTOS && (
                   <button
                     className="pe-add"
                     onClick={() => fileInput.current?.click()}
