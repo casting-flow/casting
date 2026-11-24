@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Brand } from '@/components/brand';
+import { BrandMark } from '@/components/brand';
 import { getSession } from '@/lib/auth';
 import s from './pricing.module.css';
 
@@ -42,7 +42,7 @@ const GROUP_CHEAPER_UNTIL = (() => {
   return n;
 })();
 
-type Feature = { text: string; off?: boolean; note?: string };
+type Feature = { text: string; off?: boolean };
 type Plan = {
   name: string;
   who: string;
@@ -63,12 +63,10 @@ const PLANS: Plan[] = [
     sub: <>작품 1개 · 배역 2개 · 팀원 2명까지</>,
     cta: { label: '무료로 시작하기', href: '/signup/producer' },
     features: [
-      { text: '공고 등록 · 지원 링크 · 지원자 접수' },
-      { text: '지원자 검토 · 필터 · 메모 · 결과 안내' },
-      { text: '메시지 · 오디션 일정 · 캘린더' },
-      { text: '배우 찾기 · 추천 상위 3명' },
-      { text: '제작진 인증 배지' },
-      { text: '팀 공동 평가', off: true, note: '보기만' },
+      { text: '공고 등록 · 지원자 접수' },
+      { text: '지원자 검토 · 결과 안내' },
+      { text: '메시지 · 오디션 일정' },
+      { text: '팀 공동 평가', off: true },
       { text: '후보 비교', off: true },
     ],
   },
@@ -86,13 +84,10 @@ const PLANS: Plan[] = [
     featured: true,
     features: [
       { text: '무료 플랜의 모든 기능' },
-      { text: '배역 수 제한 없음' },
-      { text: '팀원 수 제한 없음' },
-      { text: '팀 공동 평가 · 하트 · 메모 · 의견 차이 보기' },
+      { text: '배역 · 팀원 수 제한 없음' },
+      { text: '팀 공동 평가 (하트 · 메모)' },
       { text: '후보 비교 (이상형 월드컵)' },
-      { text: '조건 기반 추천 전체 보기' },
-      { text: '캐스팅 제안 · 관심 배우 저장 무제한' },
-      { text: '지원자 목록 PDF · 엑셀 내보내기', note: '출시 예정' },
+      { text: '추천 전체 · 제안 무제한' },
     ],
   },
   {
@@ -109,6 +104,7 @@ const PLANS: Plan[] = [
     features: [
       { text: '프로젝트 패스의 모든 기능' },
       { text: '6개월간 여러 작품에 사용' },
+      { text: '한 제작팀 전용' },
       { text: `3작품 시 ${won(PASS * 3 - SEMESTER)}원 절약` },
       { text: `4작품 시 ${won(PASS * 4 - SEMESTER)}원 절약` },
     ],
@@ -127,29 +123,66 @@ const PLANS: Plan[] = [
     features: [
       { text: '프로젝트 패스의 모든 기능' },
       { text: '여러 제작팀 공동 이용' },
+      { text: '팀별 계정 · 자료 분리' },
       { text: '학과 일괄 구매 · 관리' },
       { text: '연간 이용 규모에 맞춘 계약' },
     ],
   },
 ];
 
-// 무료와 프로젝트 패스의 차이. 앞의 셋은 한도, 나머지는 기능.
-const COMPARE: { item: string; free: string; pass: string; paid?: boolean }[] = [
-  { item: '동시에 진행하는 작품', free: '1개', pass: '패스를 산 작품마다' },
-  { item: '작품당 배역', free: '2개', pass: '제한 없음' },
-  { item: '팀원 (본인 포함)', free: '2명', pass: '제한 없음' },
-  { item: '공고 등록 · 지원 링크 · 지원자 접수', free: '✓', pass: '✓' },
-  { item: '지원자 검토 · 필터 · 메모 · 결과 안내', free: '✓', pass: '✓' },
-  { item: '메시지 · 오디션 일정 · 캘린더', free: '✓', pass: '✓' },
-  { item: '배우 찾기 (조건 검색)', free: '✓', pass: '✓' },
-  { item: '제작진 인증 배지 · 신고', free: '✓', pass: '✓' },
-  { item: '팀 공동 평가 (하트 · 메모 · 의견 차이)', free: '보기만', pass: '✓', paid: true },
-  { item: '후보 비교 (이상형 월드컵)', free: '—', pass: '✓', paid: true },
-  { item: '조건 기반 추천', free: '상위 3명', pass: '전체', paid: true },
-  { item: '캐스팅 제안 보내기', free: '월 5건', pass: '무제한', paid: true },
-  { item: '관심 배우 저장', free: '20명', pass: '무제한', paid: true },
-  { item: '지원자 목록 PDF · 엑셀 내보내기', free: '—', pass: '✓ (출시 예정)', paid: true },
+// 무료와 프로젝트 패스의 차이. true는 제공, false는 미제공, 글자는 그대로 보여 준다.
+type Cell = boolean | string;
+const COMPARE: {
+  group: string;
+  paid?: boolean;
+  rows: { item: string; free: Cell; pass: Cell }[];
+}[] = [
+  {
+    group: '한도',
+    rows: [
+      { item: '동시에 진행하는 작품', free: '1개', pass: '패스를 산 작품마다' },
+      { item: '작품당 배역', free: '2개', pass: '제한 없음' },
+      { item: '팀원 (본인 포함)', free: '2명', pass: '제한 없음' },
+    ],
+  },
+  {
+    group: '모든 요금제 공통',
+    rows: [
+      { item: '공고 등록 · 지원 링크 · 지원자 접수', free: true, pass: true },
+      { item: '지원자 검토 · 필터 · 메모 · 결과 안내', free: true, pass: true },
+      { item: '메시지 · 오디션 일정 · 캘린더', free: true, pass: true },
+      { item: '배우 찾기 · 제작진 인증 배지 · 신고', free: true, pass: true },
+    ],
+  },
+  {
+    group: '프로젝트 패스에서 열리는 기능',
+    paid: true,
+    rows: [
+      { item: '팀 공동 평가 (하트 · 메모 · 의견 차이)', free: '보기만', pass: true },
+      { item: '후보 비교 (이상형 월드컵)', free: false, pass: true },
+      { item: '조건 기반 추천', free: '상위 3명', pass: '전체' },
+      { item: '캐스팅 제안 보내기', free: '월 5건', pass: '무제한' },
+      { item: '관심 배우 저장', free: '20명', pass: '무제한' },
+      { item: '지원자 목록 PDF · 엑셀 내보내기', free: false, pass: '출시 예정' },
+    ],
+  },
 ];
+
+function CompareCell({ value, pass }: { value: Cell; pass?: boolean }) {
+  if (value === true)
+    return (
+      <span className={`${s.check} ${pass ? '' : s.checkDim}`} aria-label="제공">
+        ✓
+      </span>
+    );
+  if (value === false)
+    return (
+      <span className={s.dash} aria-label="미제공">
+        —
+      </span>
+    );
+  return <span>{value}</span>;
+}
 
 export default async function PricingPage({
   searchParams,
@@ -164,10 +197,16 @@ export default async function PricingPage({
   return (
     <main className={s.page}>
       <header className={s.nav}>
-        <Brand />
+        <Link href="/" className={s.logo}>
+          <BrandMark size={30} />
+          <b>캐스팅플로우</b>
+          <span>CastingFlow</span>
+        </Link>
         {!isActor && (
           <nav className={s.links} aria-label="요금제 안내">
-            <a href="#plans">요금제</a>
+            <a href="#plans" className={s.active}>
+              요금제
+            </a>
             <a href="#free-vs-pass">무료와 차이</a>
             <a href="#group">단체구매</a>
             <a href="#faq">자주 묻는 질문</a>
@@ -247,10 +286,7 @@ function ProducerPricing() {
                   <span className={s.check} aria-hidden="true">
                     {f.off ? '–' : '✓'}
                   </span>
-                  <span>
-                    {f.text}
-                    {f.note && <small> {f.note}</small>}
-                  </span>
+                  <span>{f.text}</span>
                 </li>
               ))}
             </ul>
@@ -300,18 +336,30 @@ function ProducerPricing() {
               <tr>
                 <th>기능</th>
                 <th>무료</th>
-                <th>프로젝트 패스</th>
+                <th className={s.passCol}>
+                  프로젝트 패스 <span className={s.passPrice}>{won(PASS)}원</span>
+                </th>
               </tr>
             </thead>
-            <tbody>
-              {COMPARE.map((row) => (
-                <tr key={row.item} className={row.paid ? s.paidRow : ''}>
-                  <td>{row.item}</td>
-                  <td className={s.muted}>{row.free}</td>
-                  <td>{row.pass}</td>
+            {COMPARE.map((g) => (
+              <tbody key={g.group} className={g.paid ? s.paidGroup : ''}>
+                <tr className={s.groupRow}>
+                  <th colSpan={2}>{g.group}</th>
+                  <th className={s.passCol} />
                 </tr>
-              ))}
-            </tbody>
+                {g.rows.map((row) => (
+                  <tr key={row.item}>
+                    <td>{row.item}</td>
+                    <td className={s.freeCol}>
+                      <CompareCell value={row.free} />
+                    </td>
+                    <td className={s.passCol}>
+                      <CompareCell value={row.pass} pass />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            ))}
           </table>
         </div>
       </section>
@@ -400,6 +448,14 @@ function ProducerPricing() {
               );
             })}
             <table className={s.mini}>
+              <thead>
+                <tr>
+                  <th>작품 수</th>
+                  {[1, 2, 3, 4].map((n) => (
+                    <th key={n}>{n}</th>
+                  ))}
+                </tr>
+              </thead>
               <tbody>
                 <tr>
                   <td>프로젝트 패스</td>
@@ -455,10 +511,10 @@ function ProducerPricing() {
               </tbody>
             </table>
             <p className={s.note}>
-              연 {GROUP_CHEAPER_UNTIL}편까지는 단체 이용권(5개·10개 묶음)을 사는 편이 더 저렴해요.
-              예를 들어 30편이면 {won(cheapestGroupTotal(30))}원, {GROUP_CHEAPER_UNTIL}편이면{' '}
-              {won(cheapestGroupTotal(GROUP_CHEAPER_UNTIL))}원이에요. 학과 라이선스는 연{' '}
-              {GROUP_CHEAPER_UNTIL + 1}편 이상 이용할 때 유리해요.
+              연 <b>{GROUP_CHEAPER_UNTIL}편까지</b>는 단체 이용권이 더 저렴해요 (30편{' '}
+              {won(cheapestGroupTotal(30))}원 · {GROUP_CHEAPER_UNTIL}편{' '}
+              {won(cheapestGroupTotal(GROUP_CHEAPER_UNTIL))}원). 학과 라이선스는 연{' '}
+              <b>{GROUP_CHEAPER_UNTIL + 1}편부터</b> 유리해요.
             </p>
           </div>
         </div>

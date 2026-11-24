@@ -27,8 +27,21 @@
   padding: 20px 0;
   border-bottom: 1px solid var(--border);
 }
-.nav :global(.brand-wordmark) {
-  filter: invert(1) brightness(1.6);
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
+}
+.logo b {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.logo span {
+  color: var(--faint);
+  font-size: 12.5px;
+  font-weight: 500;
 }
 .links {
   display: flex;
@@ -38,13 +51,33 @@
 .links a {
   color: var(--dim);
 }
-.links a:hover {
+.links a:hover,
+.links a.active {
   color: var(--text);
+}
+.links a.active {
+  font-weight: 700;
 }
 
 .hero {
+  position: relative;
   text-align: center;
-  padding: 64px 0 40px;
+  padding: 68px 0 44px;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: 18px;
+  left: 50%;
+  width: min(620px, 100%);
+  height: 220px;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, #c5ff4529, #c5ff450a 60%, transparent);
+  pointer-events: none;
+}
+.hero > * {
+  position: relative;
 }
 .pill {
   display: inline-block;
@@ -57,10 +90,11 @@
   letter-spacing: 0.08em;
 }
 .hero h1 {
-  margin: 22px 0 14px;
-  font-size: clamp(28px, 5vw, 44px);
-  line-height: 1.22;
-  letter-spacing: -0.03em;
+  margin: 22px 0 16px;
+  font-size: clamp(30px, 5.2vw, 48px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
 }
 .accent {
   color: var(--lime);
@@ -97,9 +131,10 @@
 }
 .featured {
   border-color: var(--lime);
+  background: linear-gradient(180deg, #c5ff450a, transparent 40%), var(--panel);
   box-shadow:
     0 0 0 1px #c5ff4544,
-    0 18px 50px -20px #c5ff4566;
+    0 24px 60px -18px #c5ff4570;
 }
 .badge {
   position: absolute;
@@ -114,7 +149,8 @@
 }
 .plan h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 14.5px;
+  font-weight: 700;
 }
 .who {
   min-height: 34px;
@@ -129,8 +165,9 @@
   color: var(--text);
 }
 .price strong {
-  font-size: 30px;
-  letter-spacing: -0.03em;
+  font-size: 31px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
 }
 .price span {
   color: var(--dim);
@@ -189,11 +226,6 @@
   gap: 8px;
   line-height: 1.45;
 }
-.features small {
-  color: var(--lime);
-  font-size: 10.5px;
-  white-space: nowrap;
-}
 .check {
   flex: none;
   display: grid;
@@ -214,9 +246,6 @@
   background: #ffffff0d;
   color: var(--faint);
 }
-.off small {
-  color: var(--faint);
-}
 
 /* 섹션 공통 */
 .section {
@@ -230,9 +259,10 @@
   margin-bottom: 22px;
 }
 .head h2 {
-  margin: 6px 0 0;
-  font-size: clamp(22px, 3vw, 27px);
-  letter-spacing: -0.03em;
+  margin: 8px 0 0;
+  font-size: clamp(23px, 3vw, 28px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
 }
 .head > p {
   max-width: 430px;
@@ -258,6 +288,7 @@
 .card h3 {
   margin: 0;
   font-size: 15px;
+  font-weight: 700;
 }
 .cardSub {
   margin: 6px 0 16px;
@@ -280,7 +311,8 @@
 }
 .explain b {
   color: var(--lime);
-  font-size: 13.5px;
+  font-size: 14px;
+  font-weight: 700;
 }
 .explain p {
   margin: 8px 0 0;
@@ -295,28 +327,63 @@
 }
 .compare th,
 .compare td {
-  padding: 11px 10px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   text-align: left;
 }
-.compare th {
+.compare thead th {
+  padding-top: 4px;
+  padding-bottom: 14px;
   color: var(--dim);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
+}
+.compare thead th.passCol {
+  color: var(--lime);
+  font-weight: 800;
+}
+.passPrice {
+  margin-left: 4px;
+  color: var(--dim);
+  font-weight: 500;
 }
 .compare th:nth-child(n + 2),
 .compare td:nth-child(n + 2) {
-  width: 26%;
+  width: 27%;
 }
-.compare tr:last-child td {
+.groupRow th {
+  padding-top: 20px;
+  padding-bottom: 8px;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.paidGroup .groupRow th:first-child {
+  color: var(--lime);
+}
+.compare tbody:last-child tr:last-child td {
   border-bottom: 0;
 }
-.paidRow td:last-child {
-  color: var(--lime);
+/* 프로젝트 패스 열을 옅은 라임으로 강조 */
+.passCol {
+  background: #c5ff4508;
+}
+.compare td.passCol {
   font-weight: 700;
 }
-.muted {
+.paidGroup td.passCol {
+  color: var(--lime);
+}
+.freeCol {
   color: var(--dim);
+}
+.checkDim {
+  background: #ffffff12;
+  color: var(--text);
+}
+.dash {
+  color: var(--faint);
 }
 
 /* 단체구매 */
@@ -473,6 +540,9 @@
   font-size: 12px;
   line-height: 1.65;
 }
+.note b {
+  color: var(--lime);
+}
 
 /* FAQ */
 .faq {
@@ -483,7 +553,8 @@
   border-top: 1px solid var(--border);
 }
 .faq b {
-  font-size: 13.5px;
+  font-size: 14px;
+  font-weight: 700;
 }
 .faq p {
   margin: 8px 0 0;
