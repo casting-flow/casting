@@ -10,7 +10,7 @@ export const LEGAL = {
    */
   contact: 'castingflowofficial@gmail.com',
   /** 약관과 처리방침이 효력을 갖는 날. 내용을 바꾸면 새 날짜로 고친다. */
-  effective: '2026년 11월 3일',
+  effective: '2026년 11월 25일',
 };
 
 export const TERMS_PATH = '/terms';
