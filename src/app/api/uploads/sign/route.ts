@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { overLimit, TOO_MANY } from '@/lib/rate-limit';
 import { cleanupTemporaryUploads, createSignedUpload, directUploadAvailable } from '@/lib/storage';
+import { recordUpload } from '@/lib/upload-access';
 import { PROFILE_PDF_MAX_BYTES, profilePdfTooLarge } from '@/lib/upload-limits';
 
 /**
@@ -31,6 +32,8 @@ export async function POST(request: NextRequest) {
   const name = `${randomUUID()}.pdf`;
   const path = purpose === 'draft' ? `tmp/${name}` : name;
   if (purpose === 'draft') await cleanupTemporaryUploads();
+  // 자료실 PDF는 주소를 줄 때 주인을 적는다. 확인(confirm)은 주인만 할 수 있다.
+  else await recordUpload(name, session.userId);
   const uploadUrl = await createSignedUpload(path);
   return NextResponse.json(
     { direct: true, name, uploadUrl },

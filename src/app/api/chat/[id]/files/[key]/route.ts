@@ -8,6 +8,7 @@ import {
 } from '@/lib/chat-files';
 import { findChatAttachment } from '@/lib/db';
 import { readUpload } from '@/lib/storage';
+import { chatStoragePath } from '@/lib/upload-access-rules';
 
 /** 대화에 올라온 파일을 연다. 그 대화의 제작자·배우만 열 수 있다. ?download=1이면 내려받기. */
 export async function GET(
@@ -22,7 +23,10 @@ export async function GET(
   // 다른 사람의 개별방 파일은 없는 것처럼 다룬다.
   if (!attachment || !canSeeRoom(participant, attachment.room))
     return new NextResponse('Not found', { status: 404 });
-  const body = await readUpload(key).catch(() => null);
+  // 새 파일은 chat/ 폴더에, 이 바뀜 전에 올린 파일은 맨 위에 있다.
+  const body =
+    (await readUpload(chatStoragePath(key)).catch(() => null)) ??
+    (await readUpload(key).catch(() => null));
   if (!body) return new NextResponse('Not found', { status: 404 });
   const ext = attachment.ext as ChatFileExt;
   const inline = opensInline(ext) && request.nextUrl.searchParams.get('download') !== '1';

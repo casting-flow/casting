@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { saveUpload } from '@/lib/storage';
+import { recordUpload } from '@/lib/upload-access';
 
 // 서버리스 요청 크기 제한(4.5MB)보다 작게 둔다. 사진은 브라우저에서 줄여서 올린다.
 const MAX_BYTES = 4 * 1024 * 1024;
@@ -20,8 +21,8 @@ function detectImage(bytes: Uint8Array) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!(await getSession()))
-    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
   const form = await request.formData().catch(() => null);
   const file = form?.get('file');
   if (!(file instanceof File))
@@ -41,5 +42,7 @@ export async function POST(request: NextRequest) {
     bytes,
     ext === 'pdf' ? 'application/pdf' : `image/${ext === 'jpg' ? 'jpeg' : ext}`,
   );
+  // 누가 올렸는지 적어 둔다. PDF는 이 기록으로 열 수 있는 사람을 정한다(lib/upload-access-rules.ts).
+  await recordUpload(name, session.userId);
   return NextResponse.json({ url: `/api/uploads/${name}` }, { status: 201 });
 }

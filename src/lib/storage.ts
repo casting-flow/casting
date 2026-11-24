@@ -4,7 +4,7 @@
 // 시크릿 키는 서버에서만 쓴다. 브라우저에 내보내지 않는다.
 
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { dataDirectory } from './data-directory';
 
 function supabase() {
@@ -33,9 +33,10 @@ export async function saveUpload(name: string, bytes: Uint8Array, contentType: s
     if (!response.ok) throw new Error(`Supabase Storage 업로드 실패 (${response.status})`);
     return;
   }
-  const dir = join(dataDirectory(), 'uploads');
-  await mkdir(dir, { recursive: true });
-  await writeFile(join(dir, name), bytes);
+  // name에 폴더가 들어갈 수 있다(대화 첨부 파일은 chat/UUID.확장자).
+  const path = join(dataDirectory(), 'uploads', name);
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, bytes);
 }
 
 export async function readUpload(name: string): Promise<BodyInit | null> {
@@ -53,16 +54,31 @@ export async function readUpload(name: string): Promise<BodyInit | null> {
   }
 }
 
+/**
+ * 대화 첨부 파일들을 지운다. 새 파일은 chat/ 폴더에, 예전 파일은 맨 위에 있어 두 곳 모두 지운다.
+ * 실패해도 본 작업은 막지 않는다.
+ */
+export async function deleteChatFiles(keys: string[]) {
+  const paths = keys
+    .filter((key) => /^[a-f0-9-]{36}\.[a-z]{2,4}$/.test(key))
+    .flatMap((key) => [`chat/${key}`, key]);
+  if (!paths.length) return;
+  try {
+    const remote = supabase();
+    if (remote) await deleteStoredPaths(paths);
+    else
+      await Promise.all(
+        paths.map((path) => rm(join(dataDirectory(), 'uploads', path), { force: true })),
+      );
+  } catch (error) {
+    console.error('대화 첨부 파일 삭제 실패', error);
+  }
+}
+
 /** /api/uploads/<name> 형태의 URL들을 지운다. 실패해도 탈퇴 같은 본 작업은 막지 않는다. */
 export async function deleteUploads(urls: string[]) {
   const names = urls
-    .map(
-      (url) =>
-        // 뒤의 문서 확장자들은 대화 첨부 파일(lib/chat-files.ts)용
-        /^\/api\/uploads\/([a-f0-9-]{36}\.(?:jpg|png|webp|pdf|hwpx?|docx?|xlsx?|pptx?))$/.exec(
-          url,
-        )?.[1],
-    )
+    .map((url) => /^\/api\/uploads\/([a-f0-9-]{36}\.(?:jpg|png|webp|pdf))$/.exec(url)?.[1])
     .filter((name): name is string => Boolean(name));
   if (!names.length) return;
   try {
