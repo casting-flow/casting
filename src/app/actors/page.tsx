@@ -3,12 +3,14 @@ import { redirect } from 'next/navigation';
 import { BrandLogo } from '@/components/brand';
 import { listPublicProfiles } from '@/lib/accounts';
 import { getSession } from '@/lib/auth';
+import { isAdultForPublicPreview } from '@/lib/child-policy';
 import { profileAge, genderLabel } from '@/lib/profile';
 
 export const dynamic = 'force-dynamic';
 
 // 로그인 전 제작진이 '어떤 배우가 있는지' 맛보기로 보는 화면.
 // 사진·이름·나이대·이미지 태그만 보여 주고, 키·경력·연락은 가입 후에 연다.
+// 미성년자(만 19세 미만)와 나이를 알 수 없는 배우는 여기서 보이지 않는다.
 const PREVIEW_COUNT = 12;
 
 const GENDERS: [string, string][] = [
@@ -33,7 +35,12 @@ export default async function ActorPreview({
 
   const params = await searchParams;
   const gender = GENDERS.some(([value]) => value === params.g) ? String(params.g ?? '') : '';
-  const all = await listPublicProfiles();
+  // 로그인 전 미리보기에는 만 19세 이상이 확실한 배우만 보여 준다(lib/child-policy.ts).
+  // 목록·위의 숫자·'N명 더 있어요'가 모두 이 목록에서 나온다.
+  const now = new Date();
+  const all = (await listPublicProfiles()).filter((profile) =>
+    isAdultForPublicPreview(profile, now),
+  );
   const matched = all
     .filter((profile) => !gender || profile.gender === gender)
     // 사진이 있는 프로필을 먼저 보여 준다.
@@ -113,9 +120,7 @@ export default async function ActorPreview({
                 <Link href={`/actors/${actor.userId}`} className="tile-info">
                   <strong>{actor.name}</strong>
                   <span>
-                    {[ageBand(actor), genderLabel[actor.gender]]
-                      .filter(Boolean)
-                      .join(' · ')}
+                    {[ageBand(actor), genderLabel[actor.gender]].filter(Boolean).join(' · ')}
                   </span>
                   <div className="tag-row">
                     {actor.tags.slice(0, 2).map((tag) => (
