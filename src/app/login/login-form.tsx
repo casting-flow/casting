@@ -73,8 +73,8 @@ export default function LoginForm({
         )}
         {!password && (
           <p className="small-note center">
-            예전에 이메일로 가입했다면, 같은 이메일의 Google 계정으로 로그인하면 기존 계정으로
-            들어가요.
+            예전에 이메일로 가입했다면, 같은 이메일의 Google·카카오 계정으로 로그인하면 기존
+            계정으로 들어가요.
           </p>
         )}
         {password && (
