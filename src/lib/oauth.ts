@@ -25,9 +25,9 @@ const CONFIG = {
     authorize: 'https://kauth.kakao.com/oauth/authorize',
     token: 'https://kauth.kakao.com/oauth/token',
     userinfo: 'https://kapi.kakao.com/v2/user/me',
-    // 이메일 동의항목은 비즈 앱에서만 켤 수 있어 닉네임만 요청한다(켜지 않은 항목을 요청하면 KOE205 오류).
-    // 이메일은 가입 화면에서 직접 받는다.
-    scope: 'profile_nickname',
+    // 이메일은 개인 개발자 비즈 앱으로 전환해 동의항목을 켰다. 콘솔에서 끄면 KOE205 오류가 나므로 함께 빼야 한다.
+    // 사용자가 이메일 제공을 거부하거나 카카오가 확인하지 않은 이메일이면 가입 화면에서 직접 받는다.
+    scope: 'profile_nickname account_email',
     idEnv: 'KAKAO_REST_API_KEY',
     secretEnv: 'KAKAO_CLIENT_SECRET',
   },
@@ -170,8 +170,8 @@ export type LinkDecision =
 
 /**
  * 소셜 로그인 결과를 어떻게 처리할지 정한다.
- * 운영에서는 구글 로그인만 쓰므로, 예전에 이메일로 가입한 사람이 같은 이메일(제공자가 확인한 이메일)의
- * 구글 계정으로 오면 기존 계정에 붙인다. 붙일 때 그 계정의 비밀번호는 지워서(linkExistingAccount),
+ * 예전에 가입한 사람이 같은 이메일(제공자가 확인한 이메일)의 구글·카카오 계정으로 오면
+ * 기존 계정에 붙인다. 붙일 때 그 계정의 비밀번호는 지워서(linkExistingAccount),
  * 혹시 남이 그 이메일로 먼저 만든 계정이었더라도 비밀번호로는 더 이상 들어올 수 없게 한다.
  */
 export function decideLink(input: {
