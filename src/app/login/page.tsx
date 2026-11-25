@@ -21,7 +21,7 @@ export default async function LoginPage({
       notice={(error && SOCIAL_NOTICE[error]) || ''}
       password={passwordLoginEnabled()}
       forgot={emailSignupEnabled()}
-      social={<SocialButtons only={['google']} next={safeNext} />}
+      social={<SocialButtons next={safeNext} />}
     />
   );
 }

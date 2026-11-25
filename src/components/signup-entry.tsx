@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Brand } from './brand';
 import { SocialButtons } from './social-buttons';
 import SignupForm from './signup-form';
-import { isProvider, openPayload, PROVIDER_LABEL, providerEnabled } from '@/lib/oauth';
+import { isProvider, openPayload, PROVIDER_LABEL, providerEnabled, PROVIDERS } from '@/lib/oauth';
 import { PENDING_COOKIE, socialSecret } from '@/lib/social-login';
 import { PRIVACY_PATH, TERMS_PATH } from '@/lib/legal';
 import { emailSignupEnabled } from '@/lib/password';
@@ -45,7 +45,7 @@ export default async function SignupEntry({
       <SignupForm role={role} providerLabel="이메일" name="" email="" then={then} mode="email" />
     );
 
-  const enabled = providerEnabled('google');
+  const enabled = PROVIDERS.some((provider) => providerEnabled(provider));
   const emailHref = `/signup/${role}?method=email${then ? `&then=${encodeURIComponent(then)}` : ''}`;
   return (
     <main className="auth-page">
@@ -58,13 +58,10 @@ export default async function SignupEntry({
       <section className="auth-card">
         <h1>{TITLE[role]}</h1>
         <p className="muted">
-          {emailSignup
-            ? 'Google 계정이나 이메일로 가입해요.'
-            : 'Google 계정으로 간편하게 가입해요.'}
+          {emailSignup ? '소셜 계정이나 이메일로 가입해요.' : '소셜 계정으로 간편하게 가입해요.'}
         </p>
         {enabled ? (
           <SocialButtons
-            only={['google']}
             next={`/signup/${role}${then ? `?then=${encodeURIComponent(then)}` : ''}`}
           />
         ) : (

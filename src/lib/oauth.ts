@@ -25,8 +25,9 @@ const CONFIG = {
     authorize: 'https://kauth.kakao.com/oauth/authorize',
     token: 'https://kauth.kakao.com/oauth/token',
     userinfo: 'https://kapi.kakao.com/v2/user/me',
-    // 이메일은 카카오 동의항목에서 켠 경우에만 온다. 없으면 가입 화면에서 직접 받는다.
-    scope: 'profile_nickname account_email',
+    // 이메일 동의항목은 비즈 앱에서만 켤 수 있어 닉네임만 요청한다(켜지 않은 항목을 요청하면 KOE205 오류).
+    // 이메일은 가입 화면에서 직접 받는다.
+    scope: 'profile_nickname',
     idEnv: 'KAKAO_REST_API_KEY',
     secretEnv: 'KAKAO_CLIENT_SECRET',
   },
