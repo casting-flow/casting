@@ -60,7 +60,7 @@ export default function LoginForm({
       <section className="auth-card">
         <h1>다시 만나서 반가워요</h1>
         <p className="muted">
-          {password ? '이메일과 비밀번호로 로그인하세요.' : 'Google 계정으로 로그인하세요.'}
+          {password ? '이메일과 비밀번호로 로그인하세요.' : '소셜 계정으로 로그인하세요.'}
         </p>
         {!password && error && (
           <p className="form-error" role="alert">

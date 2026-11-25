@@ -38,7 +38,7 @@ export const SOCIAL_NOTICE: Record<string, string> = {
   'social-unavailable': '이 로그인 방법은 지금 사용할 수 없어요.',
   'social-failed': '로그인하지 못했어요. 잠시 뒤에 다시 시도해 주세요.',
   'social-cancelled': '로그인을 취소했어요.',
-  'email-taken': '이미 가입된 이메일이에요. 같은 이메일의 Google 계정으로 로그인해 주세요.',
+  'email-taken': '이미 가입된 이메일이에요. 처음 가입할 때 쓴 방법으로 로그인해 주세요.',
   'too-many': '요청이 너무 많아요. 잠시 뒤에 다시 시도해 주세요.',
   suspended: '이용이 정지된 계정이에요. 문의하기로 연락해 주세요.',
 };
