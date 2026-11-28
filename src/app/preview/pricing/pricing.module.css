@@ -237,7 +237,8 @@
   align-items: center;
   gap: 8px;
 }
-.features i {
+.features i,
+.yes {
   display: inline-grid;
   place-items: center;
   width: 15px;
@@ -252,6 +253,14 @@
 }
 .features .off {
   color: var(--faint);
+}
+/* 가운뎃점으로 이은 항목(page.tsx의 Dotted). 항목은 줄 중간에서 끊기지 않고, 점은 양옆을 벌려 흐리게 찍는다. */
+.item {
+  white-space: nowrap;
+}
+.dot {
+  margin: 0 0.3em;
+  opacity: 0.6;
 }
 .features .off i {
   background: #222226;
@@ -557,10 +566,147 @@
   color: var(--lime-ink);
 }
 
+/* 무료와 프로젝트 패스 비교. 화면에서는 요금제 카드 바로 아래지만, 표가 위 .table을 바탕으로 쓰므로 그 뒤에 둔다. */
+.points {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (max-width: 760px) {
+  .points {
+    grid-template-columns: 1fr;
+  }
+}
+.points > div {
+  padding: 18px 20px 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.points h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.points p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+/* 비교표. 줄이 길어 값을 따라 읽기 어려우므로, 값 두 칸에 세로 띠를 깔아(무료는 회색, 프로젝트 패스는 라임 —
+   위 요금제 카드와 같은 짝) 어느 칸인지 스크롤해도 알 수 있게 하고, 글자·표시·표 머리를 다른 표보다 키운다.
+   띠는 표 뒤에 깔려서 묶음 제목 줄에서도 끊기지 않는다. */
+.diffLane {
+  --free: 20%;
+  --pass: 30%;
+  position: relative;
+}
+@media (min-width: 761px) {
+  .diffLane {
+    --free: 24%;
+    --pass: 30%;
+  }
+}
+.diffLane::before,
+.diffLane::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  bottom: -10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  pointer-events: none;
+}
+.diffLane::before {
+  right: calc(var(--pass) + 3px);
+  width: calc(var(--free) - 6px);
+}
+.diffLane::after {
+  right: 0;
+  width: calc(var(--pass) - 3px);
+  border-color: rgba(200, 255, 31, 0.3);
+  background: rgba(200, 255, 31, 0.05);
+}
+.diff {
+  position: relative;
+  z-index: 1;
+  table-layout: fixed;
+  font-size: 13px;
+}
+.diff th:nth-child(2),
+.diff td:nth-child(2) {
+  width: var(--free);
+  text-align: center;
+}
+.diff th:nth-child(3),
+.diff td:nth-child(3) {
+  width: var(--pass);
+  text-align: center;
+}
+.diff .chip {
+  padding: 3px 9px;
+  font-size: 11px;
+}
+.diff thead th {
+  padding: 4px 0 14px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+.diff thead th:first-child {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.diff td {
+  padding: 13px 0;
+}
+.diff td:nth-child(3) {
+  font-weight: 700;
+}
+@media (hover: hover) {
+  .diff tbody tr:not(.diffGroup):hover td {
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+/* 묶음 제목은 세 칸에 걸쳐 있지만, 좁은 화면에서 글자가 띠 위로 넘어가지 않게 오른쪽을 값 두 칸만큼 비운다. */
+.diffGroup th {
+  padding: 22px calc(var(--free) + var(--pass)) 9px 0;
+  color: var(--lime);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.diffNote {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.yes {
+  width: 18px;
+  height: 18px;
+  background: rgba(200, 255, 31, 0.2);
+  font-size: 11px;
+  vertical-align: middle;
+}
+.no {
+  color: var(--muted);
+}
+@media (max-width: 760px) {
+  .diffPanel {
+    padding: 22px 16px;
+  }
+  .diffNote {
+    display: block;
+    margin-top: 2px;
+  }
+}
+
 /* 자주 묻는 질문 */
 .faq {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 24px;
 }
 @media (max-width: 760px) {
